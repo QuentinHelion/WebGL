@@ -23,11 +23,14 @@
 			let camera, scene, renderer;
 			let pointLight, spotLightHelper, shadowCameraHelper;
 			let obg,obc;
-			let i;
+			let i,y;
 			let animeState;
-			let mixer
+			let mixer;
+			let mixerArray = [];
 			const clock = new THREE.Clock();
+			let positionX, positionY;
 			animeState = i = 0;
+
 
 			// ============== APPEL FONCTIONS ==============
 			init();
@@ -189,20 +192,34 @@
 				});
 
 				// ===== BONHOMMES CHAMPIS =====
-				loaderFBX.load( 'champiWalk.fbx', function ( obj ) {
-					mixer = new THREE.AnimationMixer( obj );
-					const action = mixer.clipAction( obj.animations[ 0 ] );
-					action.play();
-					obj.traverse( function ( child ) {
-						if ( child.isMesh ) {
-							child.castShadow = true;
-							child.receiveShadow = true;
-						}
+				const minDist = -200;
+				const maxDist = 200;
+				for(y = 0; y < 10; y++){
+					loaderFBX.load( 'champiWalk.fbx', function ( obj ) {
+						obj.scale.set(20,20,20);
+						mixer = new THREE.AnimationMixer( obj );
+						const action = mixer.clipAction( obj.animations[ 0 ] );
+						mixerArray[y] = mixer;
+						action.play();
+						obj.traverse( function ( child ) {
+							if ( child.isMesh ) {
+								child.castShadow = true;
+								child.receiveShadow = true;
+							}
+						} );
+						positionX = Math.floor(Math.random() * (maxDist - minDist + 1) ) + minDist;
+						positionY = Math.floor(Math.random() * (maxDist - minDist + 1) ) + minDist;
+						if(positionX < 50 && positionX > -50){positionX = 50;} // evite d'avoir les persos dans les marches
+						if(positionY < 50 && positionY > -50){positionY = 50;}
+						obj.position.set(positionX, 60, positionY);
+						// console.log(y+": "+positionX+" "+positionY);
+						scene.add( obj );
+					// }
 					} );
-					obj.scale.set(20,20,20);
-					scene.add( obj );
-				} );
-
+				}
+				// for(y = 0; y < mixer.length; y++){
+				// 	console.log(mixer[y]);
+				// }
 
 				// ============= CAMERA =============
 				camera = new THREE.PerspectiveCamera( 80, window.innerWidth / window.innerHeight, 1, 1500 );
@@ -299,7 +316,13 @@
 				};
 
 				const delta = clock.getDelta();
-				if ( mixer ) mixer.update( delta );
+				if ( mixerArray ){
+					for(y = 0; y < mixerArray.length; y++){
+						mixer = mixerArray[y];
+						mixer.update( delta );
+					}
+				}
+
 
 				renderer.render( scene, camera );
 				stats.update();
