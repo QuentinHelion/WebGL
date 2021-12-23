@@ -26,7 +26,7 @@
 			let i,y;
 			let animeState;
 			let mixer;
-			let mixerArray = [];
+			let mixerArray = new Array();
 			const clock = new THREE.Clock();
 			let positionX, positionY;
 			animeState = i = 0;
@@ -199,7 +199,7 @@
 						obj.scale.set(20,20,20);
 						mixer = new THREE.AnimationMixer( obj );
 						const action = mixer.clipAction( obj.animations[ 0 ] );
-						mixerArray[y] = mixer;
+						mixerArray.push(mixer);
 						action.play();
 						obj.traverse( function ( child ) {
 							if ( child.isMesh ) {
@@ -217,9 +217,9 @@
 					// }
 					} );
 				}
-				// for(y = 0; y < mixer.length; y++){
-				// 	console.log(mixer[y]);
-				// }
+				for(y = 0; y < mixerArray.length; y++){
+					console.log(mixerArray[y]);
+				}
 
 				// ============= CAMERA =============
 				camera = new THREE.PerspectiveCamera( 80, window.innerWidth / window.innerHeight, 1, 1500 );
