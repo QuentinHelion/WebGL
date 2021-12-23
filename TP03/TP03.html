@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="fr">
+	<head>
+		<title>Trésor</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+	</head>
+	<body>
+		<script type="module">
+
+			// ============== IMPORTS ==============
+			import * as THREE from '../build/three.module.js'; // Element threejs
+			import { OrbitControls } from './jsm/controls/OrbitControls.js'; // Controle de la caméra
+			import { GUI } from './jsm/libs/dat.gui.module.js'; // Ajout d'un GUI
+			import Stats from './jsm/libs/stats.module.js'; // Affichage des stats de la page
+			import {OBJLoader} from './jsm/loaders/OBJLoader.js'; // ajout d'obj
+			import {MTLLoader} from './jsm/loaders/MTLLoader.js'; // ² obj .mtl (pour texture)
+			import { FBXLoader } from './jsm/loaders/FBXLoader.js'; // FBX looader
+
+			// ============== VARIABLES ===============
+			let stats,gui,controls;
+			let camera, scene, renderer;
+			let pointLight, spotLightHelper, shadowCameraHelper;
+			let obg,obc;
+			let i;
+			let animeState;
+			let mixer
+			const clock = new THREE.Clock();
+			animeState = i = 0;
+
+			// ============== APPEL FONCTIONS ==============
+			init();
+			animate();
+			buildGui();
+
+			// ============== FONCTIONS ==============
+			function init() {
+
+				scene = new THREE.Scene();
+				scene.background = new THREE.Color( 0x000000 );
+
+				// ============= AFFICHAGE STATS =============
+				stats = new Stats(); // création stats
+				document.body.appendChild( stats.dom ); // ajout des stats a la scene
+
+				// ============== RENDER ==============
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.shadowMap.enabled = true; // ombre activer
+				renderer.shadowMap.type = THREE.PCFSoftShadowMap; // type d'encoding pour les ombres
+				document.body.appendChild( renderer.domElement );
+
+				// ============= LIGHT =============
+				// ===== AMBIANTE ======
+				const ambient = new THREE.AmbientLight( 0xffffff , 0.3 ); // (couleur, intensite)
+				scene.add( ambient );
+
+				// ===== LIGHT POINT =====
+				pointLight = new THREE.PointLight(0xffffff, 0.5); // (couleur, intensite)
+				pointLight.position.set(0, 300, 0); // position (x, z, y)
+				pointLight.castShadow = true; // renvoie des ombres
+				scene.add(pointLight);
+
+				// ===== SPOT LIGHT =====
+				const spotLight = new THREE.SpotLight( 0xFFFFFF, 12); // (couleur, intensite)
+				spotLight.position.set( 0, 300, 0 ); // position
+				spotLight.angle = Math.PI / 6; // angle d'ouverture
+				spotLight.decay = 1.5; // diminution avec la distance
+				spotLight.distance = 300; // distance
+				spotLight.castShadow = true; // renvoie une ombres
+				scene.add( spotLight );
+
+				// ===== HELPER =====
+				spotLightHelper = new THREE.SpotLightHelper( spotLight ); // ajoute des helpers pour le spotLight
+				spotLightHelper.visible = false; // pas visible
+				scene.add( spotLightHelper ); // ajout des helpers à la scene (blanc)
+
+				shadowCameraHelper = new THREE.CameraHelper( spotLight.shadow.camera ); // ajoute des helpers pour la camera d'ombres
+				shadowCameraHelper.visible = false; // pas visible
+				scene.add( shadowCameraHelper ); // ajout des helpers à la scene (orange)
+
+				// ============== TEXTURES ==============
+				// ===== LOADERS =====
+				const loader = new THREE.TextureLoader();
+				loader.setPath( 'textures/' ); // emplacement des textures
+
+				const loaderMTL = new MTLLoader(); // mtl => fichier qui contient les textures d'un objet 3d
+				loaderMTL.setPath( 'models/' ); // emplacement des fichiers
+				loaderMTL.setMaterialOptions( { side: THREE.DoubleSide } ); // texture appliquer des 2 cotés de l'objet
+
+				const loaderFBX = new FBXLoader();
+				loaderFBX.setPath( 'models/' ); // emplacement des fichiers
+
+				// ===== MARCHES =====
+				const marcheT = [ // texture par face
+					new THREE.MeshPhongMaterial({map: loader.load('dallePierreCoter.jpg')}), //MeshPhongMaterial = mesh mat
+					new THREE.MeshPhongMaterial({map: loader.load('dallePierreCoter.jpg')}),
+					new THREE.MeshPhongMaterial({map: loader.load('dallePierre.jpg')}),
+					new THREE.MeshPhongMaterial({map: loader.load('dallePierre.jpg')}),
+					new THREE.MeshPhongMaterial({map: loader.load('dallePierreCoter.jpg')}),
+					new THREE.MeshPhongMaterial({map: loader.load('dallePierreCoter.jpg')})
+				];
+
+				// ===== CONE LUMIERE =====
+				const coneT = new THREE.MeshBasicMaterial({	color: 0xFFFFFF, opacity: 0.1, transparent: true, side: THREE.DoubleSide});
+
+				// ============== OBJECTS ==============
+				// ===== MARCHES =====
+				const marcheA = new THREE.BoxGeometry( 200, 20, 200 ); // dimensions
+				const marcheB = new THREE.BoxGeometry( 150, 20, 150 );
+				const mA = new THREE.Mesh( marcheA, marcheT ); // (dimensions, texture)
+				const mB = new THREE.Mesh( marcheB, marcheT );
+				mA.position.y = 10; // position
+				mB.position.y = 30; // hauteur mA + 10
+				mA.receiveShadow = true; // reçoi les ombres
+				mB.receiveShadow = true;
+				scene.add( mA ); // ajout
+				scene.add( mB );
+
+				// ===== CONE =====
+				const coneGeo = new THREE.ConeGeometry( 110, 400, 60 ); // dimension (radius, hauteur, segments)
+				const cone = new THREE.Mesh(coneGeo, coneT); // (dimensions, texture)
+				cone.position.set( 0, 200, 0 ); // position
+				scene.add(cone);
+
+				// ============== IMPORT OBJET ==============
+				// ===== CAVE =====
+				loaderMTL.load('cave.mtl', (mtl) => { // new texture d'obj
+					const caveOBJ = new OBJLoader(); // new obj
+					caveOBJ.setMaterials(mtl); // ajout les texture a l'obj
+					caveOBJ.load('models/cave.obj', (obj) => { // charge l'objet
+						obj.position.set(0,60,0); // x, z, y
+						scene.add(obj); // ajout de l'obj à la scène
+					});
+				});
+
+				// ===== GEMME =====
+				loaderMTL.load('gemme.mtl', (mtl) => { // new texture d'obj
+					const gemmeOBJ = new OBJLoader(); // new obj
+					gemmeOBJ.setMaterials(mtl); // ajout les texture a l'obj
+					gemmeOBJ.load('models/gemme.obj', (obj) => { // charge l'objet
+						obj.position.set(0,45,0); // x, z, y
+						obj.traverse( function ( child ) { // Ombres
+            	if ( child instanceof THREE.Mesh ) { // cree un objet transparent autour l'objet qui prend et renvoie les ombres
+              	child.receiveShadow = true;
+	              child.castShadow = true;
+              }
+            });
+						obg = obj; // obliger de mettre l'objet dans une variable externe pour pouvoir l'appeler ensuite dans d'autre fonction
+						scene.add(obj); // ajout de l'obj à la scène
+					});
+				});
+
+
+				// ======== CHEST =======
+				// ===== CHEST TOP =====
+				loaderMTL.load('chestTop.mtl', (mtl) => { // new texture d'obj
+					const chtOBJ = new OBJLoader(); // new obj
+					chtOBJ.setMaterials(mtl); // ajout les texture a l'obj
+					chtOBJ.load('models/chestTop.obj', (obj) => { // charge l'objet
+						obj.position.set(0,75,-25); // x, z, y
+						obj.traverse( function ( child ) {
+            	if ( child instanceof THREE.Mesh ) {
+              	child.receiveShadow = true;
+	              child.castShadow = true;
+              }
+            });
+						obc = obj;
+						scene.add(obj); // ajout de l'obj à la scène
+					});
+				});
+
+				// ===== CHEST BOTTOM =====
+				loaderMTL.load('chestBottom.mtl', (mtl) => { // new texture d'obj
+					const caveOBJ = new OBJLoader(); // new obj
+					caveOBJ.setMaterials(mtl); // ajout les texture a l'obj
+					caveOBJ.load('models/chestBottom.obj', (obj) => { // charge l'objet
+						obj.position.set(0,40,0); // x, z, y
+						obj.traverse( function ( child ) {
+            	if ( child instanceof THREE.Mesh ) {
+              	child.receiveShadow = true;
+	              child.castShadow = true;
+              }
+            });
+						scene.add(obj); // ajout de l'obj à la scène
+					});
+				});
+
+				// ===== BONHOMMES CHAMPIS =====
+				loaderFBX.load( 'champiWalk.fbx', function ( obj ) {
+					mixer = new THREE.AnimationMixer( obj );
+					const action = mixer.clipAction( obj.animations[ 0 ] );
+					action.play();
+					obj.traverse( function ( child ) {
+						if ( child.isMesh ) {
+							child.castShadow = true;
+							child.receiveShadow = true;
+						}
+					} );
+					obj.scale.set(20,20,20);
+					scene.add( obj );
+				} );
+
+
+				// ============= CAMERA =============
+				camera = new THREE.PerspectiveCamera( 80, window.innerWidth / window.innerHeight, 1, 1500 );
+				camera.position.set(0,120,250);
+				camera.lookAt(0, 30, 0); // cordonnées du point regarder par la camera
+				controls = new OrbitControls( camera, renderer.domElement ); // Faire bouger la caméra avec la souris
+				controls.minDistance = 150; // distance min
+				controls.maxDistance = 300; // distance max
+				controls.maxPolarAngle = Math.PI / 2.3;
+
+				window.addEventListener( 'resize', onWindowResize );
+				window.addEventListener( 'keyup', function(e){ // 'keyup' == touche presser
+					if(e.keyCode == 32){ if(animeState == 0){ animeState = 1; } } // si touche espace presser =>    32 == keycode de la touche espace
+				});
+
+			}
+
+			// ============== GUI ==============
+			function buildGui() {
+
+				gui = new GUI(); // création gui
+
+				// ========= SETTINGS LIST =========
+				const params = { // liste des parametres
+					Helper: false, // case à cocher => renvoie true OU false
+					Freecam: false,
+					Intensite: pointLight.intensity,
+        	Background: scene.background.getHex() //getHex() => recup la couleur en hexa
+				};
+
+				// ========= SETTINGS ACTIONS =========
+				gui.add( params, 'Helper', true, false ).onChange( function( val ) {
+					spotLightHelper.visible = val; // defini la visibilite des helpers sur true OU false
+					shadowCameraHelper.visible = val;
+				});
+
+				gui.add( params, 'Freecam', true, false ).onChange( function( val ) { // permet de désactiver les limites de la camera
+					if(val){ // si val == true (donc cocher)
+						controls.minDistance = 0;
+						controls.maxDistance = 99999999;
+						controls.maxPolarAngle = 360;
+					} else { // si decocher
+						controls.minDistance = 150;
+						controls.maxDistance = 300;
+						controls.maxPolarAngle = Math.PI / 2.3;
+					}
+				});
+
+				gui.add( params, 'Intensite', 0, 10).onChange( function( val ) {
+        	pointLight.intensity = val;
+        });
+
+				gui.addColor( params, 'Background' ).onChange( function ( val ) {
+        	scene.background = new THREE.Color( val );
+        });
+
+				gui.open(); // Ajout du gui à la scene
+			}
+
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			function animate() {
+
+				requestAnimationFrame( animate ); // recup fps
+
+				if(animeState == 1){ // 1er étape animation (ouvrir le coffre et sortir le gemme)
+					if(i >= 360){ // permet de faire tourner x fois le gemme jusqu'à l'arrêt
+						animeState = 2; // passe à la 2e étape de l'animation
+						i = 0;
+					} else {
+						obc.rotation.x -= 0.01;
+						obg.position.y += 0.2;
+						obg.rotation.y += 0.05;
+						i++;
+					}
+				} else if(animeState == 2){ // 2e étape animation (refermer le coffre et ranger le gemme)
+					if(i >= 360){ // permet de faire tourner x fois le gemme jusqu'à l'arrêt
+						animeState = 0;
+						i = 0;
+					} else {
+						obc.rotation.x += 0.01;
+						obg.position.y -= 0.2;
+						obg.rotation.y += 0.05;
+						i++;
+					}
+				};
+
+				const delta = clock.getDelta();
+				if ( mixer ) mixer.update( delta );
+
+				renderer.render( scene, camera );
+				stats.update();
+
+			}
+
+    </script>
+  </body>
+</html>
