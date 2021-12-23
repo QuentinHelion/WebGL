@@ -25,11 +25,15 @@
 			let obg,obc;
 			let i,y;
 			let animeState;
+			animeState = i = 0;
+
 			let mixer;
 			let mixerArray = new Array();
+			let objArray = new Array();
 			const clock = new THREE.Clock();
+			let deltaBuffer = 0;
 			let positionX, positionY;
-			animeState = i = 0;
+			let action, objAction;
 
 
 			// ============== APPEL FONCTIONS ==============
@@ -212,7 +216,7 @@
 						if(positionX < 50 && positionX > -50){positionX = 50;} // evite d'avoir les persos dans les marches
 						if(positionY < 50 && positionY > -50){positionY = 50;}
 						obj.position.set(positionX, 60, positionY);
-						// console.log(y+": "+positionX+" "+positionY);
+						objArray.push(obj);
 						scene.add( obj );
 					// }
 					} );
@@ -315,6 +319,7 @@
 					}
 				};
 
+				// ===== ANIMATION DES FBX =====
 				const delta = clock.getDelta();
 				if ( mixerArray ){
 					for(y = 0; y < mixerArray.length; y++){
@@ -322,6 +327,25 @@
 						mixer.update( delta );
 					}
 				}
+
+				// ===== DEPLACEMENT ALEATOIRE =====
+				// for(y = 0; y < objArray.length; y++){
+					if(deltaBuffer - delta > 0.001){
+						deltaBuffer = delta;
+						action = parseInt(Math.floor(Math.random() * 5) + 1);
+						objAction = objArray[y];
+						console.log('move');
+						// switch(action) {
+						// 	case 1: obj.rotation.y = 90 ; break;
+						//
+						// 	default:
+					} else {
+						// console.log(delta);
+						// console.log(deltaBuffer);
+					}
+					// }
+				// }
+
 
 
 				renderer.render( scene, camera );
