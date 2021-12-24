@@ -18,6 +18,9 @@
 			import {MTLLoader} from './jsm/loaders/MTLLoader.js'; // ² obj .mtl (pour texture)
 			import { FBXLoader } from './jsm/loaders/FBXLoader.js'; // FBX looader
 
+			import { Octree } from './jsm/math/Octree.js';
+			import { Capsule } from './jsm/math/Capsule.js';
+
 			// ============== VARIABLES ===============
 			let stats,gui,controls;
 			let camera, scene, renderer;
@@ -31,10 +34,15 @@
 			let mixerArray = new Array();
 			let objArray = new Array();
 			const clock = new THREE.Clock();
-			let deltaBuffer = 0;
+			let clockBuffer = 0;
 			let positionX, positionY;
 			let action, objAction;
 
+			// ============== VARIABLES DE DEFINITION ==============
+			const nbrPerso = 20;
+			const STEPS_PER_FRAME = 5; // vitesse perso
+			const playerVelocity = new THREE.Vector3();
+			const playerDirection = new THREE.Vector3();
 
 			// ============== APPEL FONCTIONS ==============
 			init();
@@ -195,12 +203,12 @@
 					});
 				});
 
-				// ===== BONHOMMES CHAMPIS =====
+				// ===== CHAMPIS BOYS =====
 				const minDist = -200;
 				const maxDist = 200;
-				for(y = 0; y < 10; y++){
+				for(y = 0; y < nbrPerso; y++){
 					loaderFBX.load( 'champiWalk.fbx', function ( obj ) {
-						obj.scale.set(20,20,20);
+						obj.scale.set(10,10,10);
 						mixer = new THREE.AnimationMixer( obj );
 						const action = mixer.clipAction( obj.animations[ 0 ] );
 						mixerArray.push(mixer);
@@ -293,6 +301,54 @@
 
 			}
 
+			function getForwardVector() {
+
+				// camera.getWorldDirection( playerDirection );
+				playerDirection.y = 0;
+				playerDirection.normalize();
+
+				return playerDirection;
+
+			}
+
+			function crtlPerso( deltaTime, obj ) {
+
+				// gives a bit of air control
+				const speedDelta = deltaTime * 25;
+				// if ( keyStates[ 'KeyW' ] ) {
+					playerVelocity.add( getForwardVector().multiplyScalar( speedDelta ) );
+				// }
+
+				// if ( keyStates[ 'KeyS' ] ) {
+				//
+				// 	playerVelocity.add( getForwardVector().multiplyScalar( - speedDelta ) );
+				//
+				// }
+				//
+				// if ( keyStates[ 'KeyA' ] ) {
+				//
+				// 	playerVelocity.add( getSideVector().multiplyScalar( - speedDelta ) );
+				//
+				// }
+				//
+				// if ( keyStates[ 'KeyD' ] ) {
+				//
+				// 	playerVelocity.add( getSideVector().multiplyScalar( speedDelta ) );
+
+				// }
+
+				// if ( playerOnFloor ) {
+				//
+				// 	if ( keyStates[ 'Space' ] ) {
+				//
+				// 		playerVelocity.y = 15;
+				//
+				// 	}
+				//
+				// }
+
+			}
+
 			function animate() {
 
 				requestAnimationFrame( animate ); // recup fps
@@ -324,27 +380,34 @@
 				if ( mixerArray ){
 					for(y = 0; y < mixerArray.length; y++){
 						mixer = mixerArray[y];
-						mixer.update( delta );
+						// mixer.update( delta );
 					}
 				}
 
 				// ===== DEPLACEMENT ALEATOIRE =====
-				// for(y = 0; y < objArray.length; y++){
-					if(deltaBuffer - delta > 0.001){
-						deltaBuffer = delta;
-						action = parseInt(Math.floor(Math.random() * 5) + 1);
+				if(parseInt(clock["oldTime"]) - clockBuffer > 3000){
+				clockBuffer = parseInt(clock["oldTime"]);
+				for(y = 0; y < objArray.length; y++){
+					// if(parseInt(clock["oldTime"]) - clockBuffer > 3000+(y*100)){
+						// action = parseInt(Math.floor(Math.random() * 5) + 1);
+						action = 3;
 						objAction = objArray[y];
-						console.log('move');
-						// switch(action) {
-						// 	case 1: obj.rotation.y = 90 ; break;
-						//
-						// 	default:
-					} else {
-						// console.log(delta);
-						// console.log(deltaBuffer);
+						console.log('move: '+y);
+						console.log(action);
+
+						const deltaTime = Math.min( 0.05, clock.getDelta() ) / STEPS_PER_FRAME;
+						// crtlPerso( deltaTime );
+
+						switch(action) {
+							case 1: objAction.rotation.y += 90 ; break;
+							case 2: objAction.rotation.y -= 90 ; break;
+							case 3: crtlPerso(deltaTime, objAction) ; break;
+							// default:
 					}
-					// }
 				// }
+					// console.log(parseInt(clock["oldTime"]));
+					}
+				}
 
 
 
