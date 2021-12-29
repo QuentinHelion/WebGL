@@ -25,6 +25,8 @@
 
 			import { OrbitControls } from './jsm/controls/OrbitControls.js';
       import { FBXLoader } from './jsm/loaders/FBXLoader.js'; // FBX looader
+      import {OBJLoader} from './jsm/loaders/OBJLoader.js'; // ajout d'obj
+      import {MTLLoader} from './jsm/loaders/MTLLoader.js'; // ² obj .mtl (pour texture)
 
 			// Heightfield parameters
 			const terrainWidthExtents = 100;
@@ -60,6 +62,7 @@
 			const maxNumObjects = 30;
 
       let mixer;
+      let sol;
       	// const clock = new THREE.Clock();
 
 			Ammo().then( function ( AmmoLib ) {
@@ -73,7 +76,24 @@
 
 			function init() {
 
-				heightData = generateHeight( terrainWidth, terrainDepth, terrainMinHeight, terrainMaxHeight );
+				// heightData = generateHeight( terrainWidth, terrainDepth, terrainMinHeight, terrainMaxHeight );
+
+        // ===== CAVE =====
+        // ===== LOADERS =====
+        const loader = new THREE.TextureLoader();
+        loader.setPath( 'textures/' ); // emplacement des textures
+
+        const loaderMTL = new MTLLoader(); // mtl => fichier qui contient les textures d'un objet 3d
+        loaderMTL.setPath( 'models/' ); // emplacement des fichiers
+				loaderMTL.load('cave.mtl', (mtl) => { // new texture d'obj
+					const caveOBJ = new OBJLoader(); // new obj
+					caveOBJ.setMaterials(mtl); // ajout les texture a l'obj
+					caveOBJ.load('models/cave.obj', (obj) => { // charge l'objet
+						obj.position.set(0,60,0); // x, z, y
+            sol = obj;
+						// scene.add(obj); // ajout de l'obj à la scène
+					});
+				});
 
 				initGraphics();
 
@@ -101,7 +121,7 @@
 				scene = new THREE.Scene();
 				scene.background = new THREE.Color( 0xbfd1e5 );
 
-				camera.position.y = heightData[ terrainHalfWidth + terrainHalfDepth * terrainWidth ] * ( terrainMaxHeight - terrainMinHeight ) + 5;
+				// camera.position.y = heightData[ terrainHalfWidth + terrainHalfDepth * terrainWidth ] * ( terrainMaxHeight - terrainMinHeight ) + 5;
 
 				camera.position.z = terrainDepthExtents / 2;
 				camera.lookAt( 0, 0, 0 );
@@ -114,12 +134,12 @@
 
 				const vertices = geometry.attributes.position.array;
 
-				for ( let i = 0, j = 0, l = vertices.length; i < l; i ++, j += 3 ) {
-
-					// j + 1 because it is the y component that we modify
-					vertices[ j + 1 ] = heightData[ i ];
-
-				}
+				// for ( let i = 0, j = 0, l = vertices.length; i < l; i ++, j += 3 ) {
+        //
+				// 	// j + 1 because it is the y component that we modify
+				// 	vertices[ j + 1 ] = heightData[ i ];
+        //
+				// }
 
 				geometry.computeVertexNormals();
 
@@ -195,47 +215,49 @@
 				const groundLocalInertia = new Ammo.btVector3( 0, 0, 0 );
 				const groundMotionState = new Ammo.btDefaultMotionState( groundTransform );
 				const groundBody = new Ammo.btRigidBody( new Ammo.btRigidBodyConstructionInfo( groundMass, groundMotionState, groundShape, groundLocalInertia ) );
-				physicsWorld.addRigidBody( groundBody );
+
+
+        physicsWorld.addRigidBody( groundBody );
 
 				transformAux1 = new Ammo.btTransform();
 
 			}
 
-			function generateHeight( width, depth, minHeight, maxHeight ) {
-
-				// Generates the height data (a sinus wave)
-
-				const size = width * depth;
-				const data = new Float32Array( size );
-
-				const hRange = maxHeight - minHeight;
-				const w2 = width / 2;
-				const d2 = depth / 2;
-				const phaseMult = 12;
-
-				let p = 0;
-
-				for ( let j = 0; j < depth; j ++ ) {
-
-					for ( let i = 0; i < width; i ++ ) {
-
-						const radius = Math.sqrt(
-							Math.pow( ( i - w2 ) / w2, 2.0 ) +
-								Math.pow( ( j - d2 ) / d2, 2.0 ) );
-
-						const height = ( Math.sin( radius * phaseMult ) + 1 ) * 0.5 * hRange + minHeight;
-
-						data[ p ] = height;
-
-						p ++;
-
-					}
-
-				}
-
-				return data;
-
-			}
+			// function generateHeight( width, depth, minHeight, maxHeight ) {
+      //
+			// 	// Generates the height data (a sinus wave)
+      //
+			// 	const size = width * depth;
+			// 	const data = new Float32Array( size );
+      //
+			// 	const hRange = maxHeight - minHeight;
+			// 	const w2 = width / 2;
+			// 	const d2 = depth / 2;
+			// 	const phaseMult = 12;
+      //
+			// 	let p = 0;
+      //
+			// 	for ( let j = 0; j < depth; j ++ ) {
+      //
+			// 		for ( let i = 0; i < width; i ++ ) {
+      //
+			// 			const radius = Math.sqrt(
+			// 				Math.pow( ( i - w2 ) / w2, 2.0 ) +
+			// 					Math.pow( ( j - d2 ) / d2, 2.0 ) );
+      //
+			// 			const height = ( Math.sin( radius * phaseMult ) + 1 ) * 0.5 * hRange + minHeight;
+      //
+			// 			data[ p ] = height;
+      //
+			// 			p ++;
+      //
+			// 		}
+      //
+			// 	}
+      //
+			// 	return data;
+      //
+			// }
 
 			function createTerrainShape() {
 
@@ -258,21 +280,21 @@
 				let p = 0;
 				let p2 = 0;
 
-				for ( let j = 0; j < terrainDepth; j ++ ) {
-
-					for ( let i = 0; i < terrainWidth; i ++ ) {
-
-						// write 32-bit float data to memory
-						Ammo.HEAPF32[ ammoHeightData + p2 >> 2 ] = heightData[ p ];
-
-						p ++;
-
-						// 4 bytes/float
-						p2 += 4;
-
-					}
-
-				}
+				// for ( let j = 0; j < terrainDepth; j ++ ) {
+        //
+				// 	for ( let i = 0; i < terrainWidth; i ++ ) {
+        //
+				// 		// write 32-bit float data to memory
+				// 		Ammo.HEAPF32[ ammoHeightData + p2 >> 2 ] = heightData[ p ];
+        //
+				// 		p ++;
+        //
+				// 		// 4 bytes/float
+				// 		p2 += 4;
+        //
+				// 	}
+        //
+				// }
 
 				// Creates the heightfield physics shape
 				const heightFieldShape = new Ammo.btHeightfieldTerrainShape(
