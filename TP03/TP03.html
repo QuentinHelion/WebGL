@@ -7,6 +7,8 @@
 		<link type="text/css" rel="stylesheet" href="main.css">
 	</head>
 	<body>
+		<script src="js/libs/ammo.wasm.js"></script>
+
 		<script type="module">
 
 			// ============== IMPORTS ==============
@@ -38,8 +40,37 @@
 			let positionX, positionY;
 			let action, objAction;
 
+
+			// geometrie terrain
+			const terrainWidthExtents = 1000;
+			const terrainDepthExtents = 1000;
+			const terrainWidth = 1280;
+			const terrainDepth = 128;
+			const terrainHalfWidth = terrainWidth / 2;
+			const terrainHalfDepth = terrainDepth / 2;
+			const terrainMaxHeight = 8;
+			const terrainMinHeight = - 2;
+
+			let heightData = null;
+			let ammoHeightData = null;
+			let time = 0;
+			const objectTimePeriod = 3;
+			let timeNextSpawn = time + objectTimePeriod;
+			const maxNumObjects = 30;
+
+
+			// Physics variables
+			let collisionConfiguration;
+			let dispatcher;
+			let broadphase;
+			let solver;
+			let physicsWorld;
+			const dynamicObjects = [];
+			let transformAux1;
+
+
 			// ============== VARIABLES DE DEFINITION ==============
-			const nbrPerso = 100;
+			const nbrPerso = 1;
 			const STEPS_PER_FRAME = 5; // vitesse perso
 			const playerVelocity = new THREE.Vector3();
 			const playerDirection = new THREE.Vector3();
@@ -47,9 +78,15 @@
 
 
 			// ============== APPEL FONCTIONS ==============
-			init();
-			animate();
-			buildGui();
+			Ammo().then( function ( AmmoLib ) {
+				Ammo = AmmoLib;
+				init();
+				animate();
+				buildGui();
+			} );
+			// init();
+			// animate();
+			// buildGui();
 
 			// ============== FONCTIONS ==============
 			function init() {
@@ -142,6 +179,17 @@
 				cone.position.set( 0, 200, 0 ); // position
 				scene.add(cone);
 
+				// ============== SOL ===============
+				const geometry = new THREE.PlaneGeometry( terrainWidthExtents, terrainDepthExtents, terrainWidth - 1, terrainDepth - 1 );
+				geometry.computeVertexNormals();
+				geometry.rotateX( - Math.PI / 2 );
+				const groundMaterial = new THREE.MeshPhongMaterial( { color: 0xFFFFFF } );
+				const terrainMesh = new THREE.Mesh( geometry, groundMaterial );
+				terrainMesh.receiveShadow = true;
+				terrainMesh.castShadow = true;
+				terrainMesh.position.set( 0, -100, 0 );
+				scene.add( terrainMesh );
+
 				// ============== IMPORT OBJET ==============
 				// ===== CAVE =====
 				loaderMTL.load('cave.mtl', (mtl) => { // new texture d'obj
@@ -149,7 +197,30 @@
 					caveOBJ.setMaterials(mtl); // ajout les texture a l'obj
 					caveOBJ.load('models/cave.obj', (obj) => { // charge l'objet
 						obj.position.set(0,60,0); // x, z, y
+
+						shape = new Ammo.btCylinderShape( new Ammo.btVector3( radius, height * 0.5, radius ) );
+						shape.setMargin( margin );
+
+						// ===== PHYSIQUE =====
+						shape = new Ammo.btCylinderShape( new Ammo.btVector3( radius, height * 0.5, radius ) );
+						shape.setMargin( margin );
+						obj.add(new THREE.BoxHelper(obj, 0xffffff));
+
+						const mass = objectSize * 5;
+						const localInertia = new Ammo.btVector3( 0, 0, 0 );
+						shape.calculateLocalInertia( mass, localInertia );
+						const transform = new Ammo.btTransform();
+						transform.setIdentity();
+						const pos = obj.position;
+						transform.setOrigin( new Ammo.btVector3( pos.x, pos.y, pos.z ) );
+						const motionState = new Ammo.btDefaultMotionState( transform );
+						const rbInfo = new Ammo.btRigidBodyConstructionInfo( mass, motionState, shape, localInertia );
+						const body = new Ammo.btRigidBody( rbInfo );
+
+						obj.userData.physicsBody = body;
 						scene.add(obj); // ajout de l'obj à la scène
+						dynamicObjects.push( obj );
+						physicsWorld.addRigidBody( body );
 					});
 				});
 
@@ -206,6 +277,12 @@
 				});
 
 				// ===== CHAMPIS BOYS =====
+				const objectSize = 3;
+				const margin = 0.05;
+				let shape = null;
+		    let radius, height;
+				radius = height = objectSize;
+				// height = objectSize
 				const minDist = -200;
 				const maxDist = 200;
 				const angle = [0,90,180,-90,-180];
@@ -225,31 +302,126 @@
 						positionY = Math.floor(Math.random() * (maxDist - minDist + 1) ) + minDist;
 						if(positionX < 50 && positionX > -50){positionX = 50;} // evite d'avoir les persos dans les marches
 						if(positionY < 50 && positionY > -50){positionY = 50;}
-						obj.position.set(positionX, 30, positionY);
+						obj.position.set(positionX, 100, positionY);
 						obj.rotation.y = angle[parseInt(Math.floor(Math.random() * 5))];
-						objArray.push(obj);
 
+						// ===== PHYSIQUE =====
+						shape = new Ammo.btCylinderShape( new Ammo.btVector3( radius, height * 0.5, radius ) );
+						shape.setMargin( margin );
+	          obj.add(new THREE.BoxHelper(obj, 0xffffff));
+
+						const mass = objectSize * 5;
+						const localInertia = new Ammo.btVector3( 0, 0, 0 );
+	 					shape.calculateLocalInertia( mass, localInertia );
+						const transform = new Ammo.btTransform();
+						transform.setIdentity();
+						const pos = obj.position;
+						transform.setOrigin( new Ammo.btVector3( pos.x, pos.y, pos.z ) );
+						const motionState = new Ammo.btDefaultMotionState( transform );
+						const rbInfo = new Ammo.btRigidBodyConstructionInfo( mass, motionState, shape, localInertia );
+						const body = new Ammo.btRigidBody( rbInfo );
+
+						obj.userData.physicsBody = body;
+						dynamicObjects.push( obj );
+						physicsWorld.addRigidBody( body );
+						objArray.push(obj);
 						scene.add( obj );
+
 					// }
 					} );
 				}
-				for(y = 0; y < mixerArray.length; y++){
-					console.log(mixerArray[y]);
-				}
+				// for(y = 0; y < mixerArray.length; y++){
+				// 	console.log(mixerArray[y]);
+				// }
 
 				// ============= CAMERA =============
 				camera = new THREE.PerspectiveCamera( 80, window.innerWidth / window.innerHeight, 1, 1500 );
 				camera.position.set(0,120,250);
 				camera.lookAt(0, 30, 0); // cordonnées du point regarder par la camera
 				controls = new OrbitControls( camera, renderer.domElement ); // Faire bouger la caméra avec la souris
-				controls.minDistance = 150; // distance min
-				controls.maxDistance = 300; // distance max
-				controls.maxPolarAngle = Math.PI / 2.3;
+				// controls.minDistance = 150; // distance min
+				// controls.maxDistance = 300; // distance max
+				// controls.maxPolarAngle = Math.PI / 2.3;
 
 				window.addEventListener( 'resize', onWindowResize );
 				window.addEventListener( 'keyup', function(e){ // 'keyup' == touche presser
 					if(e.keyCode == 32){ if(animeState == 0){ animeState = 1; } } // si touche espace presser =>    32 == keycode de la touche espace
 				});
+
+				initPhysics();
+
+			}
+
+			function initPhysics() {
+
+				// Physics configuration
+
+				collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
+				dispatcher = new Ammo.btCollisionDispatcher( collisionConfiguration );
+				broadphase = new Ammo.btDbvtBroadphase();
+				solver = new Ammo.btSequentialImpulseConstraintSolver();
+				physicsWorld = new Ammo.btDiscreteDynamicsWorld( dispatcher, broadphase, solver, collisionConfiguration );
+				physicsWorld.setGravity( new Ammo.btVector3( 0, - 6, 0 ) );
+
+				// Create the terrain body
+
+				const groundShape = createTerrainShape();
+				const groundTransform = new Ammo.btTransform();
+				groundTransform.setIdentity();
+				// Shifts the terrain, since bullet re-centers it on its bounding box.
+				// groundTransform.setOrigin( new Ammo.btVector3( 0, ( terrainMaxHeight + terrainMinHeight ) / 2, 0 ) );
+				groundTransform.setOrigin( new Ammo.btVector3( 0, 60, 0 ) );
+				const groundMass = 0;
+				const groundLocalInertia = new Ammo.btVector3( 0, 0, 0 );
+				const groundMotionState = new Ammo.btDefaultMotionState( groundTransform );
+				const groundBody = new Ammo.btRigidBody( new Ammo.btRigidBodyConstructionInfo( groundMass, groundMotionState, groundShape, groundLocalInertia ) );
+
+				physicsWorld.addRigidBody( groundBody );
+
+				// groundBody.add(new THREE.BoxHelper(physicsWorld, 0xffffff));
+
+				transformAux1 = new Ammo.btTransform();
+
+			}
+
+			function createTerrainShape() {
+
+				// This parameter is not really used, since we are using PHY_FLOAT height data type and hence it is ignored
+				const heightScale = 1;
+
+				// Up axis = 0 for X, 1 for Y, 2 for Z. Normally 1 = Y is used.
+				const upAxis = 1;
+
+				// hdt, height data type. "PHY_FLOAT" is used. Possible values are "PHY_FLOAT", "PHY_UCHAR", "PHY_SHORT"
+				const hdt = "PHY_FLOAT";
+
+				// Set this to your needs (inverts the triangles)
+				const flipQuadEdges = false;
+
+				// Creates height data buffer in Ammo heap
+				ammoHeightData = Ammo._malloc( 4 * terrainWidth * terrainDepth );
+
+				// Creates the heightfield physics shape
+				const heightFieldShape = new Ammo.btHeightfieldTerrainShape(
+					terrainWidth,
+					terrainDepth,
+					ammoHeightData,
+					heightScale,
+					terrainMinHeight,
+					terrainMaxHeight,
+					upAxis,
+					hdt,
+					flipQuadEdges
+				);
+
+				// Set horizontal scale
+				const scaleX = terrainWidthExtents / ( terrainWidth - 1 );
+				const scaleZ = terrainDepthExtents / ( terrainDepth - 1 );
+				heightFieldShape.setLocalScaling( new Ammo.btVector3( scaleX, 1, scaleZ ) );
+
+				heightFieldShape.setMargin( 0.05 );
+
+				return heightFieldShape;
 
 			}
 
@@ -307,6 +479,7 @@
 
 
 			function movePerso(){
+				console.log("move");
 				for(y = 0; y < nbrPerso; y++){
 					switch(objArray[y].rotation.y){
 						case 0: objArray[y].position.z += .1; break;
@@ -317,14 +490,45 @@
 						case 270: objArray[y].rotation.y = -90; break;
 						case -270: objArray[y].rotation.y = 90; break;
 					}
-					// console.log(objArray[y].rotation.y);
+					console.log(objArray[y].position);
 				}
+			}
+
+			function updatePhysics( deltaTime ) {
+
+				physicsWorld.stepSimulation( deltaTime, 10 );
+
+				// Update objects
+				// let aaa;
+				for ( let aaa = 0; aaa < dynamicObjects.length; aaa++ ) {
+					objArray[0].position.x += 0.1;
+					const objThree = dynamicObjects[ i ];
+					// objThree.position.
+					const objPhys = objThree.userData.physicsBody;
+					const ms = objPhys.getMotionState();
+					if ( ms ) {
+						console.log(objThree.position);
+
+						ms.getWorldTransform( transformAux1 );
+						const p = transformAux1.getOrigin();
+						const q = transformAux1.getRotation();
+						objThree.position.set( p.x(), p.y(), p.z() );
+						objThree.quaternion.set( q.x(), q.y(), q.z(), q.w() );
+
+					}
+
+				}
+
 			}
 
 			function animate() {
 
 				requestAnimationFrame( animate ); // recup fps
+				const delta = clock.getDelta();
 
+				// ====== PHYSIQUE =====
+				// updatePhysics( delta );
+				render();
 				if(animeState == 1){ // 1er étape animation (ouvrir le coffre et sortir le gemme)
 					if(i >= 360){ // permet de faire tourner x fois le gemme jusqu'à l'arrêt
 						animeState = 2; // passe à la 2e étape de l'animation
@@ -348,7 +552,6 @@
 				};
 
 				// ===== ANIMATION DES FBX =====
-				const delta = clock.getDelta();
 				if ( mixerArray ){
 					for(y = 0; y < mixerArray.length; y++){
 						mixer = mixerArray[y];
@@ -371,26 +574,34 @@
 								case 2: objAction.rotation.y -= 90 ; break;
 						}
 
-						for(var vertexIndex = 0; vertexIndex < objAction.geometry.vertices.length; vertexIndex++){
-							var localVertex = objAction.geometry.vertices[vertexIndex].clone();
-							var globalVertex = objAction.matrix.multiplyVector3(localVertex);
-							var directionVector = globalVertex.subSelf( objAction.position );
-
-							var ray = new THREE.Ray( objAction.position, directionVector.clone().normalize() );
-							var collisionResults = ray.intersectObjects( collidableMeshList );
-							if ( collisionResults.length > 0 && collisionResults[0].distance < directionVector.length() ) {
-								console.log(y+': touche');
-							}
-						}
+						// for(var vertexIndex = 0; vertexIndex < objAction.geometry.vertices.length; vertexIndex++){
+						// 	var localVertex = objAction.geometry.vertices[vertexIndex].clone();
+						// 	var globalVertex = objAction.matrix.multiplyVector3(localVertex);
+						// 	var directionVector = globalVertex.subSelf( objAction.position );
+						//
+						// 	var ray = new THREE.Ray( objAction.position, directionVector.clone().normalize() );
+						// 	var collisionResults = ray.intersectObjects( collidableMeshList );
+						// 	if ( collisionResults.length > 0 && collisionResults[0].distance < directionVector.length() ) {
+						// 		console.log(y+': touche');
+						// 	}
+						// }
 				// }
 					// console.log(parseInt(clock["oldTime"]));
 					}
 				}
 
-				movePerso();
+				// movePerso();
 
+
+				updatePhysics( delta );
 				renderer.render( scene, camera );
 				stats.update();
+
+			}
+
+			function render(){
+				const deltaTime = clock.getDelta();
+				// movePerso();
 
 			}
 
