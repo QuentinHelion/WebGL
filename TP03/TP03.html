@@ -40,53 +40,17 @@
 			let positionX, positionY;
 			let action, objAction;
 
-
-			// geometrie terrain
-			const terrainWidthExtents = 1000;
-			const terrainDepthExtents = 1000;
-			const terrainWidth = 1280;
-			const terrainDepth = 128;
-			const terrainHalfWidth = terrainWidth / 2;
-			const terrainHalfDepth = terrainDepth / 2;
-			const terrainMaxHeight = 8;
-			const terrainMinHeight = - 2;
-
-			let heightData = null;
-			let ammoHeightData = null;
-			let time = 0;
-			const objectTimePeriod = 3;
-			let timeNextSpawn = time + objectTimePeriod;
-			const maxNumObjects = 30;
-
-
-			// Physics variables
-			let collisionConfiguration;
-			let dispatcher;
-			let broadphase;
-			let solver;
-			let physicsWorld;
-			const dynamicObjects = [];
-			let transformAux1;
-
-
 			// ============== VARIABLES DE DEFINITION ==============
-			const nbrPerso = 1;
-			const STEPS_PER_FRAME = 5; // vitesse perso
-			const playerVelocity = new THREE.Vector3();
-			const playerDirection = new THREE.Vector3();
+			const nbrPerso = 10;
+			const areaMax = 300;
+			const speed = .3; // vitesse perso
 			let objMove = new Array();
 
 
 			// ============== APPEL FONCTIONS ==============
-			Ammo().then( function ( AmmoLib ) {
-				Ammo = AmmoLib;
-				init();
-				animate();
-				buildGui();
-			} );
-			// init();
-			// animate();
-			// buildGui();
+			init();
+			animate();
+			buildGui();
 
 			// ============== FONCTIONS ==============
 			function init() {
@@ -179,17 +143,6 @@
 				cone.position.set( 0, 200, 0 ); // position
 				scene.add(cone);
 
-				// ============== SOL ===============
-				const geometry = new THREE.PlaneGeometry( terrainWidthExtents, terrainDepthExtents, terrainWidth - 1, terrainDepth - 1 );
-				geometry.computeVertexNormals();
-				geometry.rotateX( - Math.PI / 2 );
-				const groundMaterial = new THREE.MeshPhongMaterial( { color: 0xFFFFFF } );
-				const terrainMesh = new THREE.Mesh( geometry, groundMaterial );
-				terrainMesh.receiveShadow = true;
-				terrainMesh.castShadow = true;
-				terrainMesh.position.set( 0, -100, 0 );
-				scene.add( terrainMesh );
-
 				// ============== IMPORT OBJET ==============
 				// ===== CAVE =====
 				loaderMTL.load('cave.mtl', (mtl) => { // new texture d'obj
@@ -197,30 +150,7 @@
 					caveOBJ.setMaterials(mtl); // ajout les texture a l'obj
 					caveOBJ.load('models/cave.obj', (obj) => { // charge l'objet
 						obj.position.set(0,60,0); // x, z, y
-
-						shape = new Ammo.btCylinderShape( new Ammo.btVector3( radius, height * 0.5, radius ) );
-						shape.setMargin( margin );
-
-						// ===== PHYSIQUE =====
-						shape = new Ammo.btCylinderShape( new Ammo.btVector3( radius, height * 0.5, radius ) );
-						shape.setMargin( margin );
-						obj.add(new THREE.BoxHelper(obj, 0xffffff));
-
-						const mass = objectSize * 5;
-						const localInertia = new Ammo.btVector3( 0, 0, 0 );
-						shape.calculateLocalInertia( mass, localInertia );
-						const transform = new Ammo.btTransform();
-						transform.setIdentity();
-						const pos = obj.position;
-						transform.setOrigin( new Ammo.btVector3( pos.x, pos.y, pos.z ) );
-						const motionState = new Ammo.btDefaultMotionState( transform );
-						const rbInfo = new Ammo.btRigidBodyConstructionInfo( mass, motionState, shape, localInertia );
-						const body = new Ammo.btRigidBody( rbInfo );
-
-						obj.userData.physicsBody = body;
 						scene.add(obj); // ajout de l'obj à la scène
-						dynamicObjects.push( obj );
-						physicsWorld.addRigidBody( body );
 					});
 				});
 
@@ -277,14 +207,8 @@
 				});
 
 				// ===== CHAMPIS BOYS =====
-				const objectSize = 3;
-				const margin = 0.05;
-				let shape = null;
-		    let radius, height;
-				radius = height = objectSize;
-				// height = objectSize
-				const minDist = -200;
-				const maxDist = 200;
+				const maxMinDist = -250;
+				const maxDist = 250;
 				const angle = [0,90,180,-90,-180];
 				for(y = 0; y < nbrPerso; y++){
 					loaderFBX.load( 'champiWalk.fbx', function ( obj ) {
@@ -298,41 +222,16 @@
 								child.receiveShadow = true;
 							}
 						} );
-						positionX = Math.floor(Math.random() * (maxDist - minDist + 1) ) + minDist;
-						positionY = Math.floor(Math.random() * (maxDist - minDist + 1) ) + minDist;
-						if(positionX < 50 && positionX > -50){positionX = 50;} // evite d'avoir les persos dans les marches
-						if(positionY < 50 && positionY > -50){positionY = 50;}
-						obj.position.set(positionX, 100, positionY);
+						positionX = Math.floor(Math.random() * (maxDist - maxMinDist + 1) ) + maxMinDist;
+						positionY = Math.floor(Math.random() * (maxDist - maxMinDist + 1) ) + maxMinDist;
+						if(positionX < 60 && positionX > -60){positionX += 60;} // evite d'avoir les persos dans les marches
+						if(positionY < 60 && positionY > -60){positionY += 60;}
+						obj.position.set(positionX, 10, positionY);
 						obj.rotation.y = angle[parseInt(Math.floor(Math.random() * 5))];
-
-						// ===== PHYSIQUE =====
-						shape = new Ammo.btCylinderShape( new Ammo.btVector3( radius, height * 0.5, radius ) );
-						shape.setMargin( margin );
-	          obj.add(new THREE.BoxHelper(obj, 0xffffff));
-
-						const mass = objectSize * 5;
-						const localInertia = new Ammo.btVector3( 0, 0, 0 );
-	 					shape.calculateLocalInertia( mass, localInertia );
-						const transform = new Ammo.btTransform();
-						transform.setIdentity();
-						const pos = obj.position;
-						transform.setOrigin( new Ammo.btVector3( pos.x, pos.y, pos.z ) );
-						const motionState = new Ammo.btDefaultMotionState( transform );
-						const rbInfo = new Ammo.btRigidBodyConstructionInfo( mass, motionState, shape, localInertia );
-						const body = new Ammo.btRigidBody( rbInfo );
-
-						obj.userData.physicsBody = body;
-						dynamicObjects.push( obj );
-						physicsWorld.addRigidBody( body );
 						objArray.push(obj);
 						scene.add( obj );
-
-					// }
 					} );
 				}
-				// for(y = 0; y < mixerArray.length; y++){
-				// 	console.log(mixerArray[y]);
-				// }
 
 				// ============= CAMERA =============
 				camera = new THREE.PerspectiveCamera( 80, window.innerWidth / window.innerHeight, 1, 1500 );
@@ -348,7 +247,7 @@
 					if(e.keyCode == 32){ if(animeState == 0){ animeState = 1; } } // si touche espace presser =>    32 == keycode de la touche espace
 				});
 
-				initPhysics();
+				// initPhysics();
 
 			}
 
@@ -479,18 +378,19 @@
 
 
 			function movePerso(){
-				console.log("move");
+				// console.log("move");
 				for(y = 0; y < nbrPerso; y++){
 					switch(objArray[y].rotation.y){
-						case 0: objArray[y].position.z += .1; break;
-						case 90: objArray[y].position.x += .1; break;
-						case -90: objArray[y].position.x -= .1; break;
-						case 180: objArray[y].position.z -= .1; break;
-						case -180: objArray[y].position.z -= .1; break;
+						case 0: objArray[y].position.z += speed; break;
+						case 90: objArray[y].position.x += speed; break;
+						case -90: objArray[y].position.x -= speed; break;
+						case 180: objArray[y].position.z -= speed; break;
+						case -180: objArray[y].position.z -= speed; objArray[y].rotation.y  = 180; break;
 						case 270: objArray[y].rotation.y = -90; break;
 						case -270: objArray[y].rotation.y = 90; break;
+						default: objArray[y].rotation.y = 0;
 					}
-					console.log(objArray[y].position);
+					// console.log(objArray[y].position);
 				}
 			}
 
@@ -501,13 +401,13 @@
 				// Update objects
 				// let aaa;
 				for ( let aaa = 0; aaa < dynamicObjects.length; aaa++ ) {
-					objArray[0].position.x += 0.1;
+					// objArray[0].position.x += 0.1;
 					const objThree = dynamicObjects[ i ];
 					// objThree.position.
 					const objPhys = objThree.userData.physicsBody;
 					const ms = objPhys.getMotionState();
 					if ( ms ) {
-						console.log(objThree.position);
+						// console.log(objThree.position);
 
 						ms.getWorldTransform( transformAux1 );
 						const p = transformAux1.getOrigin();
@@ -528,7 +428,7 @@
 
 				// ====== PHYSIQUE =====
 				// updatePhysics( delta );
-				render();
+				// render();
 				if(animeState == 1){ // 1er étape animation (ouvrir le coffre et sortir le gemme)
 					if(i >= 360){ // permet de faire tourner x fois le gemme jusqu'à l'arrêt
 						animeState = 2; // passe à la 2e étape de l'animation
@@ -561,50 +461,46 @@
 				}
 
 				// ===== DEPLACEMENT ALEATOIRE =====
-				if(parseInt(clock["oldTime"]) - clockBuffer > 3000){
-					clockBuffer = parseInt(clock["oldTime"]);
+				// if(parseInt(clock["oldTime"]) - clockBuffer > 3000){
+					// console.log('buffer');
 					for(y = 0; y < objArray.length; y++){
-						// if(parseInt(clock["oldTime"]) - clockBuffer > 3000+(y*100)){
-							action = parseInt(Math.floor(Math.random() * 10) + 1);
-							objAction = objArray[y];
+						objAction = objArray[y];
+						if(objAction.position.x > areaMax){
+							objAction.rotation.y = -90;
+						}
+						if(objAction.position.x < -areaMax){
+							objAction.rotation.y = 90;
+						}
+						if(objAction.position.z > areaMax){
+							objAction.rotation.y = 180;
+						}
+						if(objAction.position.z < -areaMax){
+							objAction.rotation.y = 0;
+						}
+						for(let yB = y+1; yB < objArray.length; yB++){
 							// console.log('move: '+y);
-							// console.log(action);
-							switch(action) {
+							// console.log('x: '+objAction.position.x);
+							// console.log('z: '+objAction.position.z);
+							if( (((objAction.position.x - objArray[yB].position.x) < 20) && ((objAction.position.x - objArray[yB].position.x) > -20)) && (((objAction.position.z - objArray[yB].position.z) < 20) && ((objAction.position.z - objArray[yB].position.z) > -20)) ){
+								objAction.rotation.y += 90;
+								console.log('Toucher');
+							}
+						}
+						if(parseInt(clock["oldTime"]) - clockBuffer > 3000){
+							clockBuffer = parseInt(clock["oldTime"]);
+							action = parseInt(Math.floor(Math.random() * 10) + 1);
+							switch(action){
 								case 1: objAction.rotation.y += 90 ; break;
 								case 2: objAction.rotation.y -= 90 ; break;
+							}
 						}
-
-						// for(var vertexIndex = 0; vertexIndex < objAction.geometry.vertices.length; vertexIndex++){
-						// 	var localVertex = objAction.geometry.vertices[vertexIndex].clone();
-						// 	var globalVertex = objAction.matrix.multiplyVector3(localVertex);
-						// 	var directionVector = globalVertex.subSelf( objAction.position );
-						//
-						// 	var ray = new THREE.Ray( objAction.position, directionVector.clone().normalize() );
-						// 	var collisionResults = ray.intersectObjects( collidableMeshList );
-						// 	if ( collisionResults.length > 0 && collisionResults[0].distance < directionVector.length() ) {
-						// 		console.log(y+': touche');
-						// 	}
-						// }
-				// }
-					// console.log(parseInt(clock["oldTime"]));
 					}
-				}
-
-				// movePerso();
-
-
-				updatePhysics( delta );
+				movePerso();
+				// updatePhysics( delta );
 				renderer.render( scene, camera );
 				stats.update();
 
 			}
-
-			function render(){
-				const deltaTime = clock.getDelta();
-				// movePerso();
-
-			}
-
     </script>
   </body>
 </html>
