@@ -144,7 +144,7 @@
 				loaderMTL.load('cave.mtl', (mtl) => { // new texture d'obj
 					const caveOBJ = new OBJLoader(); // new obj
 					caveOBJ.setMaterials(mtl); // ajout les texture a l'obj
-					caveOBJ.load('models/cave.obj', (obj) => { // charge l'objet
+					caveOBJ.load('models/cavev2.obj', (obj) => { // charge l'objet
 						obj.position.set(0,60,0); // x, z, y
 						scene.add(obj); // ajout de l'obj à la scène
 					});
