@@ -41,9 +41,9 @@
 			let action, objAction;
 
 			// ============== VARIABLES DE DEFINITION ==============
-			const nbrPerso = 10;
+			const nbrPerso = 30;
 			const areaMax = 300;
-			const areaMin = 50;
+			const areaMin = 100;
 			const speed = .3; // vitesse perso
 			let objMove = new Array();
 			let objAnimate = new Array();
@@ -226,8 +226,8 @@
 						} );
 						positionX = Math.floor(Math.random() * (maxDist - maxMinDist + 1) ) + maxMinDist;
 						positionY = Math.floor(Math.random() * (maxDist - maxMinDist + 1) ) + maxMinDist;
-						if(positionX < 60 && positionX > -60){positionX += 60;} // evite d'avoir les persos dans les marches
-						if(positionY < 60 && positionY > -60){positionY += 60;}
+						if(positionX < areaMin && positionX > -areaMin){positionX += areaMin;} // evite d'avoir les persos dans les marches
+						if(positionY < areaMin && positionY > -areaMin){positionY += areaMin;}
 						obj.position.set(positionX, 10, positionY);
 						obj.rotation.y = angle[parseInt(Math.floor(Math.random() * 5))];
 						objArray.push(obj);
@@ -304,7 +304,6 @@
 
 
 			function movePerso(){
-				// console.log("move");
 				for(y = 0; y < nbrPerso; y++){
 					switch(objArray[y].rotation.y){
 						case 0: objArray[y].position.z += speed; break;
@@ -316,7 +315,6 @@
 						case -270: objArray[y].rotation.y = 90; break;
 						default: objArray[y].rotation.y = 0;
 					}
-					// console.log(objArray[y].position);
 				}
 			}
 
@@ -357,7 +355,7 @@
 					}
 				}
 
-				// ===== DEPLACEMENT ALEATOIRE =====
+				// ===== DEPLACEMENT DES PERSONNAGES =====
 				for(y = 0; y < objArray.length; y++){
 					objAction = objArray[y];
 					if(objAction.position.x > areaMax){
@@ -372,18 +370,22 @@
 					if(objAction.position.z < -areaMax){
 						objAction.rotation.y = 0;
 					}
+					if(objAction.position.x < areaMin && objAction.position.x > -areaMin && objAction.position.z < areaMin && objAction.position.z > -areaMin){
+						if(objAnimate[y] == null){
+							objAnimate[y] = parseInt(clock["oldTime"]);
+							objAction.rotation.y += 90;
+						}
+					}
+					// ======= COLLISION ======
 					for(let yB = y+1; yB < objArray.length; yB++){
 						if( (((objAction.position.x - objArray[yB].position.x) < 20) && ((objAction.position.x - objArray[yB].position.x) > -20)) && (((objAction.position.z - objArray[yB].position.z) < 20) && ((objAction.position.z - objArray[yB].position.z) > -20)) ){
 							if(objAnimate[y] == null){
 								objAnimate[y] = parseInt(clock["oldTime"]);
 								objAction.rotation.y += 90;
 							}
-							if(parseInt(clock["oldTime"]) - objAnimate[y] > 1000){
-								objAnimate[y] = null;
-							}
-
 						}
 					}
+					// ======= MOUVEMENT ALEATOIRE =====
 					if(parseInt(clock["oldTime"]) - clockBuffer > 3000){
 						clockBuffer = parseInt(clock["oldTime"]);
 						action = parseInt(Math.floor(Math.random() * 10) + 1);
@@ -391,6 +393,10 @@
 							case 1: objAction.rotation.y += 90 ; break;
 							case 2: objAction.rotation.y -= 90 ; break;
 						}
+					}
+					// ======= RESET DES CHRONOBUFFER =======
+					if(parseInt(clock["oldTime"]) - objAnimate[y] > 1000){
+						objAnimate[y] = null;
 					}
 				}
 				movePerso();
