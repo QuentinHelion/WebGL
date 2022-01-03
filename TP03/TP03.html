@@ -248,82 +248,6 @@
 				window.addEventListener( 'keyup', function(e){ // 'keyup' == touche presser
 					if(e.keyCode == 32){ if(animeState == 0){ animeState = 1; } } // si touche espace presser =>    32 == keycode de la touche espace
 				});
-
-				// initPhysics();
-
-			}
-
-			function initPhysics() {
-
-				// Physics configuration
-
-				collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
-				dispatcher = new Ammo.btCollisionDispatcher( collisionConfiguration );
-				broadphase = new Ammo.btDbvtBroadphase();
-				solver = new Ammo.btSequentialImpulseConstraintSolver();
-				physicsWorld = new Ammo.btDiscreteDynamicsWorld( dispatcher, broadphase, solver, collisionConfiguration );
-				physicsWorld.setGravity( new Ammo.btVector3( 0, - 6, 0 ) );
-
-				// Create the terrain body
-
-				const groundShape = createTerrainShape();
-				const groundTransform = new Ammo.btTransform();
-				groundTransform.setIdentity();
-				// Shifts the terrain, since bullet re-centers it on its bounding box.
-				// groundTransform.setOrigin( new Ammo.btVector3( 0, ( terrainMaxHeight + terrainMinHeight ) / 2, 0 ) );
-				groundTransform.setOrigin( new Ammo.btVector3( 0, 60, 0 ) );
-				const groundMass = 0;
-				const groundLocalInertia = new Ammo.btVector3( 0, 0, 0 );
-				const groundMotionState = new Ammo.btDefaultMotionState( groundTransform );
-				const groundBody = new Ammo.btRigidBody( new Ammo.btRigidBodyConstructionInfo( groundMass, groundMotionState, groundShape, groundLocalInertia ) );
-
-				physicsWorld.addRigidBody( groundBody );
-
-				// groundBody.add(new THREE.BoxHelper(physicsWorld, 0xffffff));
-
-				transformAux1 = new Ammo.btTransform();
-
-			}
-
-			function createTerrainShape() {
-
-				// This parameter is not really used, since we are using PHY_FLOAT height data type and hence it is ignored
-				const heightScale = 1;
-
-				// Up axis = 0 for X, 1 for Y, 2 for Z. Normally 1 = Y is used.
-				const upAxis = 1;
-
-				// hdt, height data type. "PHY_FLOAT" is used. Possible values are "PHY_FLOAT", "PHY_UCHAR", "PHY_SHORT"
-				const hdt = "PHY_FLOAT";
-
-				// Set this to your needs (inverts the triangles)
-				const flipQuadEdges = false;
-
-				// Creates height data buffer in Ammo heap
-				ammoHeightData = Ammo._malloc( 4 * terrainWidth * terrainDepth );
-
-				// Creates the heightfield physics shape
-				const heightFieldShape = new Ammo.btHeightfieldTerrainShape(
-					terrainWidth,
-					terrainDepth,
-					ammoHeightData,
-					heightScale,
-					terrainMinHeight,
-					terrainMaxHeight,
-					upAxis,
-					hdt,
-					flipQuadEdges
-				);
-
-				// Set horizontal scale
-				const scaleX = terrainWidthExtents / ( terrainWidth - 1 );
-				const scaleZ = terrainDepthExtents / ( terrainDepth - 1 );
-				heightFieldShape.setLocalScaling( new Ammo.btVector3( scaleX, 1, scaleZ ) );
-
-				heightFieldShape.setMargin( 0.05 );
-
-				return heightFieldShape;
-
 			}
 
 			// ============== GUI ==============
@@ -396,41 +320,12 @@
 				}
 			}
 
-			function updatePhysics( deltaTime ) {
-
-				physicsWorld.stepSimulation( deltaTime, 10 );
-
-				// Update objects
-				// let aaa;
-				for ( let aaa = 0; aaa < dynamicObjects.length; aaa++ ) {
-					// objArray[0].position.x += 0.1;
-					const objThree = dynamicObjects[ i ];
-					// objThree.position.
-					const objPhys = objThree.userData.physicsBody;
-					const ms = objPhys.getMotionState();
-					if ( ms ) {
-						// console.log(objThree.position);
-
-						ms.getWorldTransform( transformAux1 );
-						const p = transformAux1.getOrigin();
-						const q = transformAux1.getRotation();
-						objThree.position.set( p.x(), p.y(), p.z() );
-						objThree.quaternion.set( q.x(), q.y(), q.z(), q.w() );
-
-					}
-
-				}
-
-			}
-
 			function animate() {
 
 				requestAnimationFrame( animate ); // recup fps
 				const delta = clock.getDelta();
 
-				// ====== PHYSIQUE =====
-				// updatePhysics( delta );
-				// render();
+				// ===== ANIMATION COFFRE =====
 				if(animeState == 1){ // 1er étape animation (ouvrir le coffre et sortir le gemme)
 					if(i >= 360){ // permet de faire tourner x fois le gemme jusqu'à l'arrêt
 						animeState = 2; // passe à la 2e étape de l'animation
@@ -463,48 +358,42 @@
 				}
 
 				// ===== DEPLACEMENT ALEATOIRE =====
-				// if(parseInt(clock["oldTime"]) - clockBuffer > 3000){
-					// console.log('buffer');
-					for(y = 0; y < objArray.length; y++){
-						objAction = objArray[y];
-						if(objAction.position.x > areaMax){
-							objAction.rotation.y = -90;
-						}
-						if(objAction.position.x < -areaMax){
-							objAction.rotation.y = 90;
-						}
-						if(objAction.position.z > areaMax){
-							objAction.rotation.y = 180;
-						}
-						if(objAction.position.z < -areaMax){
-							objAction.rotation.y = 0;
-						}
-						for(let yB = y+1; yB < objArray.length; yB++){
-							// console.log('move: '+y);
-							// console.log('x: '+objAction.position.x);
-							// console.log('z: '+objAction.position.z);
-							if( (((objAction.position.x - objArray[yB].position.x) < 20) && ((objAction.position.x - objArray[yB].position.x) > -20)) && (((objAction.position.z - objArray[yB].position.z) < 20) && ((objAction.position.z - objArray[yB].position.z) > -20)) ){
-								if(objAnimate[y] == null){
-									objAnimate[y] = parseInt(clock["oldTime"]);
-									objAction.rotation.y += 90;
-								}
-								if(parseInt(clock["oldTime"]) - objAnimate[y] > 1000){
-									objAnimate[y] = null;
-								}
+				for(y = 0; y < objArray.length; y++){
+					objAction = objArray[y];
+					if(objAction.position.x > areaMax){
+						objAction.rotation.y = -90;
+					}
+					if(objAction.position.x < -areaMax){
+						objAction.rotation.y = 90;
+					}
+					if(objAction.position.z > areaMax){
+						objAction.rotation.y = 180;
+					}
+					if(objAction.position.z < -areaMax){
+						objAction.rotation.y = 0;
+					}
+					for(let yB = y+1; yB < objArray.length; yB++){
+						if( (((objAction.position.x - objArray[yB].position.x) < 20) && ((objAction.position.x - objArray[yB].position.x) > -20)) && (((objAction.position.z - objArray[yB].position.z) < 20) && ((objAction.position.z - objArray[yB].position.z) > -20)) ){
+							if(objAnimate[y] == null){
+								objAnimate[y] = parseInt(clock["oldTime"]);
+								objAction.rotation.y += 90;
+							}
+							if(parseInt(clock["oldTime"]) - objAnimate[y] > 1000){
+								objAnimate[y] = null;
+							}
 
-							}
-						}
-						if(parseInt(clock["oldTime"]) - clockBuffer > 3000){
-							clockBuffer = parseInt(clock["oldTime"]);
-							action = parseInt(Math.floor(Math.random() * 10) + 1);
-							switch(action){
-								case 1: objAction.rotation.y += 90 ; break;
-								case 2: objAction.rotation.y -= 90 ; break;
-							}
 						}
 					}
+					if(parseInt(clock["oldTime"]) - clockBuffer > 3000){
+						clockBuffer = parseInt(clock["oldTime"]);
+						action = parseInt(Math.floor(Math.random() * 10) + 1);
+						switch(action){
+							case 1: objAction.rotation.y += 90 ; break;
+							case 2: objAction.rotation.y -= 90 ; break;
+						}
+					}
+				}
 				movePerso();
-				// updatePhysics( delta );
 				renderer.render( scene, camera );
 				stats.update();
 
