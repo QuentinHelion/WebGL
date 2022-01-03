@@ -42,6 +42,7 @@
 			const areaMax = 270;
 			const areaMin = 100;
 			const speed = .3; // vitesse perso
+			const gravity = 7; // gravité
 
 
 			// ============== APPEL FONCTIONS ==============
@@ -105,8 +106,6 @@
 				loaderMTL.setPath( 'models/' ); // emplacement des fichiers
 				loaderMTL.setMaterialOptions( { side: THREE.DoubleSide } ); // texture appliquer des 2 cotés de l'objet
 
-				const loaderFBX = new FBXLoader();
-				loaderFBX.setPath( 'models/' ); // emplacement des fichiers
 
 				// ===== MARCHES =====
 				const marcheT = [ // texture par face
@@ -206,22 +205,7 @@
 				// ===== CHAMPIS =====
 				const angle = [0,90,180,-90];
 				for(y = 0; y < nbrPerso; y++){
-					loaderFBX.load( 'champiWalk.fbx', function ( obj ) {
-						mixer = new THREE.AnimationMixer( obj );
-						const action = mixer.clipAction( obj.animations[ 0 ] );
-						mixerArray.push(mixer);
-						action.play();
-						obj.traverse( function ( child ) {
-							if ( child.isMesh ) {
-								child.castShadow = true;
-								child.receiveShadow = true;
-							}
-						} );
-						obj.position.set(genPos(areaMax, areaMin), 10, genPos(areaMax, areaMin));
-						obj.rotation.y = angle[parseInt(Math.floor(Math.random() * 4))];
-						objArray.push(obj);
-						scene.add( obj );
-					} );
+					createPerso();
 				}
 
 				// ============= CAMERA =============
@@ -240,6 +224,28 @@
 			}
 
 			// ============== FONCTIONS UTILES ==============
+			// ===== CREATION PERSONNAGE =====
+			function createPerso(){
+				const angle = [0,90,180,-90];
+				const loaderFBX = new FBXLoader();
+				loaderFBX.setPath( 'models/' ); // emplacement des fichiers
+				loaderFBX.load( 'champiWalk.fbx', function ( obj ) {
+					mixer = new THREE.AnimationMixer( obj );
+					const action = mixer.clipAction( obj.animations[ 0 ] );
+					mixerArray.push(mixer);
+					action.play();
+					obj.traverse( function ( child ) {
+						if ( child.isMesh ) {
+							child.castShadow = true;
+							child.receiveShadow = true;
+						}
+					} );
+					obj.position.set(genPos(areaMax, areaMin), 300, genPos(areaMax, areaMin));
+					obj.rotation.y = angle[parseInt(Math.floor(Math.random() * 4))];
+					objArray.push(obj);
+					scene.add( obj );
+				} );
+			}
 			// ===== GENERATION POSITION RANDOM =====
 			function genPos(max, min){
 				let position = Math.floor(Math.random() * (max - (max*-1) + 1) ) - max;
@@ -267,7 +273,8 @@
 					Helper: false, // case à cocher => renvoie true OU false
 					Freecam: false,
 					Intensite: pointLight.intensity,
-        	Background: scene.background.getHex() //getHex() => recup la couleur en hexa
+        	Background: scene.background.getHex(), //getHex() => recup la couleur en hexa
+					'Ajouter un personnage': function(){ createPerso() }
 				};
 
 				// ========= SETTINGS ACTIONS =========
@@ -296,6 +303,8 @@
         	scene.background = new THREE.Color( val );
         });
 
+				gui.add( params, 'Ajouter un personnage' );
+
 				gui.open(); // Ajout du gui à la scene
 			}
 
@@ -319,6 +328,9 @@
 			// ===== VERIF POSITION PERSO =====
 			// Fait tourner le personnage s'il sort de la zone définie
 			function verifPos(obj){
+				if(obj.position.y > 10){
+					obj.position.y -= gravity;
+				}
 				if(obj.position.x > areaMax){
 					obj.rotation.y = -90;
 				}
