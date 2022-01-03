@@ -43,8 +43,10 @@
 			// ============== VARIABLES DE DEFINITION ==============
 			const nbrPerso = 10;
 			const areaMax = 300;
+			const areaMin = 50;
 			const speed = .3; // vitesse perso
 			let objMove = new Array();
+			let objAnimate = new Array();
 
 
 			// ============== APPEL FONCTIONS ==============
@@ -482,8 +484,14 @@
 							// console.log('x: '+objAction.position.x);
 							// console.log('z: '+objAction.position.z);
 							if( (((objAction.position.x - objArray[yB].position.x) < 20) && ((objAction.position.x - objArray[yB].position.x) > -20)) && (((objAction.position.z - objArray[yB].position.z) < 20) && ((objAction.position.z - objArray[yB].position.z) > -20)) ){
-								objAction.rotation.y += 90;
-								console.log('Toucher');
+								if(objAnimate[y] == null){
+									objAnimate[y] = parseInt(clock["oldTime"]);
+									objAction.rotation.y += 90;
+								}
+								if(parseInt(clock["oldTime"]) - objAnimate[y] > 1000){
+									objAnimate[y] = null;
+								}
+
 							}
 						}
 						if(parseInt(clock["oldTime"]) - clockBuffer > 3000){
