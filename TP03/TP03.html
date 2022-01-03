@@ -7,8 +7,6 @@
 		<link type="text/css" rel="stylesheet" href="main.css">
 	</head>
 	<body>
-		<script src="js/libs/ammo.wasm.js"></script>
-
 		<script type="module">
 
 			// ============== IMPORTS ==============
@@ -19,9 +17,6 @@
 			import {OBJLoader} from './jsm/loaders/OBJLoader.js'; // ajout d'obj
 			import {MTLLoader} from './jsm/loaders/MTLLoader.js'; // ² obj .mtl (pour texture)
 			import { FBXLoader } from './jsm/loaders/FBXLoader.js'; // FBX looader
-
-			import { Octree } from './jsm/math/Octree.js';
-			import { Capsule } from './jsm/math/Capsule.js';
 
 			// ============== VARIABLES ===============
 			let stats,gui,controls;
@@ -39,20 +34,20 @@
 			let clockBuffer = 0;
 			let positionX, positionY;
 			let action, objAction;
+			let objMove = new Array();
+			let objClockBuffer = new Array();
 
-			// ============== VARIABLES DE DEFINITION ==============
+			// ============== VARIABLES DEFINITION ==============
 			const nbrPerso = 30;
-			const areaMax = 300;
+			const areaMax = 270;
 			const areaMin = 100;
 			const speed = .3; // vitesse perso
-			let objMove = new Array();
-			let objAnimate = new Array();
 
 
 			// ============== APPEL FONCTIONS ==============
 			init();
-			animate();
 			buildGui();
+			animate();
 
 			// ============== FONCTIONS ==============
 			function init() {
@@ -208,10 +203,8 @@
 					});
 				});
 
-				// ===== CHAMPIS BOYS =====
-				const maxMinDist = -250;
-				const maxDist = 250;
-				const angle = [0,90,180,-90,-180];
+				// ===== CHAMPIS =====
+				const angle = [0,90,180,-90];
 				for(y = 0; y < nbrPerso; y++){
 					loaderFBX.load( 'champiWalk.fbx', function ( obj ) {
 						mixer = new THREE.AnimationMixer( obj );
@@ -224,12 +217,8 @@
 								child.receiveShadow = true;
 							}
 						} );
-						positionX = Math.floor(Math.random() * (maxDist - maxMinDist + 1) ) + maxMinDist;
-						positionY = Math.floor(Math.random() * (maxDist - maxMinDist + 1) ) + maxMinDist;
-						if(positionX < areaMin && positionX > -areaMin){positionX += areaMin;} // evite d'avoir les persos dans les marches
-						if(positionY < areaMin && positionY > -areaMin){positionY += areaMin;}
-						obj.position.set(positionX, 10, positionY);
-						obj.rotation.y = angle[parseInt(Math.floor(Math.random() * 5))];
+						obj.position.set(genPos(areaMax, areaMin), 10, genPos(areaMax, areaMin));
+						obj.rotation.y = angle[parseInt(Math.floor(Math.random() * 4))];
 						objArray.push(obj);
 						scene.add( obj );
 					} );
@@ -240,9 +229,9 @@
 				camera.position.set(0,120,250);
 				camera.lookAt(0, 30, 0); // cordonnées du point regarder par la camera
 				controls = new OrbitControls( camera, renderer.domElement ); // Faire bouger la caméra avec la souris
-				// controls.minDistance = 150; // distance min
-				// controls.maxDistance = 300; // distance max
-				// controls.maxPolarAngle = Math.PI / 2.3;
+				controls.minDistance = 150; // distance min
+				controls.maxDistance = 300; // distance max
+				controls.maxPolarAngle = Math.PI / 2.3; // angle max de la caméra
 
 				window.addEventListener( 'resize', onWindowResize );
 				window.addEventListener( 'keyup', function(e){ // 'keyup' == touche presser
@@ -250,9 +239,27 @@
 				});
 			}
 
+			// ============== FONCTIONS UTILES ==============
+			// ===== GENERATION POSITION RANDOM =====
+			function genPos(max, min){
+				let position = Math.floor(Math.random() * (max - (max*-1) + 1) ) - max;
+				if(position < min && position > -min){ // evite d'avoir les persos dans les marches
+					position = position > 0 ? position + min : position - min;
+				}
+				return position;
+			}
+
+			// ===== WINDOW REZISE =====
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+			}
+
+
+
 			// ============== GUI ==============
 			function buildGui() {
-
 				gui = new GUI(); // création gui
 
 				// ========= SETTINGS LIST =========
@@ -292,17 +299,8 @@
 				gui.open(); // Ajout du gui à la scene
 			}
 
-
-			function onWindowResize() {
-
-				camera.aspect = window.innerWidth / window.innerHeight;
-				camera.updateProjectionMatrix();
-
-				renderer.setSize( window.innerWidth, window.innerHeight );
-
-			}
-
-
+			// ============== MOUVEMENT PERSONNAGES ==============
+			// ===== AVANCER =====
 			function movePerso(){
 				for(y = 0; y < nbrPerso; y++){
 					switch(objArray[y].rotation.y){
@@ -310,7 +308,7 @@
 						case 90: objArray[y].position.x += speed; break;
 						case -90: objArray[y].position.x -= speed; break;
 						case 180: objArray[y].position.z -= speed; break;
-						case -180: objArray[y].position.z -= speed; objArray[y].rotation.y  = 180; break;
+						case -180: objArray[y].position.z -= speed; break;
 						case 270: objArray[y].rotation.y = -90; break;
 						case -270: objArray[y].rotation.y = 90; break;
 						default: objArray[y].rotation.y = 0;
@@ -318,9 +316,34 @@
 				}
 			}
 
+			// ===== VERIF POSITION PERSO =====
+			// Fait tourner le personnage s'il sort de la zone définie
+			function verifPos(obj){
+				if(obj.position.x > areaMax){
+					obj.rotation.y = -90;
+				}
+				if(obj.position.x < -areaMax){
+					obj.rotation.y = 90;
+				}
+				if(obj.position.z > areaMax){
+					obj.rotation.y = 180;
+				}
+				if(obj.position.z < -areaMax){
+					obj.rotation.y = 0;
+				}
+				if(obj.position.x < areaMin && obj.position.x > -areaMin && obj.position.z < areaMin && obj.position.z > -areaMin){
+					if(objClockBuffer[y] == null){
+						objClockBuffer[y] = parseInt(clock["oldTime"]);
+						obj.rotation.y += 90;
+					}
+				}
+			}
+
 			function animate() {
 
 				requestAnimationFrame( animate ); // recup fps
+				stats.update();
+
 				const delta = clock.getDelta();
 
 				// ===== ANIMATION COFFRE =====
@@ -358,29 +381,12 @@
 				// ===== DEPLACEMENT DES PERSONNAGES =====
 				for(y = 0; y < objArray.length; y++){
 					objAction = objArray[y];
-					if(objAction.position.x > areaMax){
-						objAction.rotation.y = -90;
-					}
-					if(objAction.position.x < -areaMax){
-						objAction.rotation.y = 90;
-					}
-					if(objAction.position.z > areaMax){
-						objAction.rotation.y = 180;
-					}
-					if(objAction.position.z < -areaMax){
-						objAction.rotation.y = 0;
-					}
-					if(objAction.position.x < areaMin && objAction.position.x > -areaMin && objAction.position.z < areaMin && objAction.position.z > -areaMin){
-						if(objAnimate[y] == null){
-							objAnimate[y] = parseInt(clock["oldTime"]);
-							objAction.rotation.y += 90;
-						}
-					}
+					verifPos(objAction);
 					// ======= COLLISION ======
 					for(let yB = y+1; yB < objArray.length; yB++){
 						if( (((objAction.position.x - objArray[yB].position.x) < 20) && ((objAction.position.x - objArray[yB].position.x) > -20)) && (((objAction.position.z - objArray[yB].position.z) < 20) && ((objAction.position.z - objArray[yB].position.z) > -20)) ){
-							if(objAnimate[y] == null){
-								objAnimate[y] = parseInt(clock["oldTime"]);
+							if(objClockBuffer[y] == null){
+								objClockBuffer[y] = parseInt(clock["oldTime"]);
 								objAction.rotation.y += 90;
 							}
 						}
@@ -395,14 +401,12 @@
 						}
 					}
 					// ======= RESET DES CHRONOBUFFER =======
-					if(parseInt(clock["oldTime"]) - objAnimate[y] > 1000){
-						objAnimate[y] = null;
+					if(parseInt(clock["oldTime"]) - objClockBuffer[y] > 1000){
+						objClockBuffer[y] = null;
 					}
 				}
 				movePerso();
 				renderer.render( scene, camera );
-				stats.update();
-
 			}
     </script>
   </body>
