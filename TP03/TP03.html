@@ -274,7 +274,7 @@
 					Freecam: false,
 					Intensite: pointLight.intensity,
         	Background: scene.background.getHex(), //getHex() => recup la couleur en hexa
-					'Ajouter un personnage': function(){ createPerso() }
+					"Ajouter personnage": function(){ createPerso(); }
 				};
 
 				// ========= SETTINGS ACTIONS =========
@@ -303,7 +303,7 @@
         	scene.background = new THREE.Color( val );
         });
 
-				gui.add( params, 'Ajouter un personnage' );
+				gui.add( params, "Ajouter personnage");
 
 				gui.open(); // Ajout du gui à la scene
 			}
@@ -311,7 +311,7 @@
 			// ============== MOUVEMENT PERSONNAGES ==============
 			// ===== AVANCER =====
 			function movePerso(){
-				for(y = 0; y < nbrPerso; y++){
+				for(y = 0; y < objArray.length; y++){
 					switch(objArray[y].rotation.y){
 						case 0: objArray[y].position.z += speed; break;
 						case 90: objArray[y].position.x += speed; break;
