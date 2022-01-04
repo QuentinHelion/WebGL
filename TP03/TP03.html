@@ -144,7 +144,7 @@
 				loaderMTL.load('cave.mtl', (mtl) => { // new texture d'obj
 					const caveOBJ = new OBJLoader(); // new obj
 					caveOBJ.setMaterials(mtl); // ajout les texture a l'obj
-					caveOBJ.load('models/cavev2.obj', (obj) => { // charge l'objet
+					caveOBJ.load('models/cave.obj', (obj) => { // charge l'objet
 						obj.position.set(0,60,0); // x, z, y
 						scene.add(obj); // ajout de l'obj à la scène
 					});
@@ -274,7 +274,8 @@
 					Freecam: false,
 					Intensite: pointLight.intensity,
         	Background: scene.background.getHex(), //getHex() => recup la couleur en hexa
-					"Ajouter personnage": function(){ createPerso(); }
+					"Ajouter personnage": function(){ createPerso(); },
+					"Action change": function(){ animeChange(0) }
 				};
 
 				// ========= SETTINGS ACTIONS =========
@@ -304,6 +305,8 @@
         });
 
 				gui.add( params, "Ajouter personnage");
+
+				gui.add( params, "Action change");
 
 				gui.open(); // Ajout du gui à la scene
 			}
@@ -351,6 +354,13 @@
 				}
 			}
 
+			// ===== CHANGEMENT ANIMATION =====
+			function animeChange(objNum){
+				const action = mixerArray[objNum].clipAction('models/champiTurn.fbx');
+				// console.log(mixerArray[objNum]);
+				action.play();
+			}
+
 			function animate() {
 
 				requestAnimationFrame( animate ); // recup fps
@@ -385,7 +395,7 @@
 				if ( mixerArray ){
 					for(y = 0; y < mixerArray.length; y++){
 						mixer = mixerArray[y];
-						mixer.timeScale = .5;
+						mixer.timeScale = .7;
 						mixer.update( delta );
 					}
 				}
