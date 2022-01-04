@@ -1,0 +1,12 @@
+# Blender MTL File: 'cave4.blend'
+# Material Count: 1
+
+newmtl Material
+Ns 191.948410
+Ka 0.112727 0.112727 0.112727
+Kd 0.042164 0.042164 0.042164
+Ks 0.296364 0.296364 0.296364
+Ke 0.000000 0.000000 0.000000
+Ni 7.849999
+d 1.000000
+illum 3
