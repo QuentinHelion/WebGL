@@ -244,7 +244,7 @@
 					obj.rotation.y = angle[parseInt(Math.floor(Math.random() * 4))];
 					objArray.push(obj);
 					scene.add( obj );
-				} );
+				});
 			}
 			// ===== GENERATION POSITION RANDOM =====
 			function genPos(max, min){
@@ -356,8 +356,10 @@
 
 			// ===== CHANGEMENT ANIMATION =====
 			function animeChange(objNum){
-				const action = mixerArray[objNum].clipAction('models/champiTurn.fbx');
-				// console.log(mixerArray[objNum]);
+				mixer = new THREE.AnimationMixer( objArray[objNum] );
+				const action = mixer.clipAction('models/champiTurn.fbx');
+				console.log(action);
+				mixerArray[objNum] = mixer;
 				action.play();
 			}
 
