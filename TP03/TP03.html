@@ -34,8 +34,9 @@
 			let clockBuffer = 0;
 			let positionX, positionY;
 			let action, objAction;
-			let objMove = new Array();
 			let objClockBuffer = new Array();
+			let animeClockBuffer = new Array(); // stock les temps de début de chaque animation jouer
+			let objMove = new Array();
 
 			// ============== VARIABLES DEFINITION ==============
 			const nbrPerso = 1;
@@ -243,6 +244,7 @@
 					obj.position.set(genPos(areaMax, areaMin), 300, genPos(areaMax, areaMin));
 					obj.rotation.y = angle[parseInt(Math.floor(Math.random() * 4))];
 					objArray.push(obj);
+					objMove.push('walk');
 					scene.add( obj );
 				});
 			}
@@ -275,7 +277,7 @@
 					Intensite: pointLight.intensity,
         	Background: scene.background.getHex(), //getHex() => recup la couleur en hexa
 					"Ajouter personnage": function(){ createPerso(); },
-					"Action change": function(){ animeChange(0, "turnRight") },
+					"Action change": function(){ objMove[0] = "right" },
 					"Action change 2": function(){ animeChange(0, "walk") }
 				};
 
@@ -314,19 +316,33 @@
 				gui.open(); // Ajout du gui à la scene
 			}
 
-			// ============== MOUVEMENT PERSONNAGES ==============
-			// ===== AVANCER =====
+			// ============== MOUVEMENTS PERSONNAGES ==============
+			// ===== DEPLACEMENTS =====
 			function movePerso(){
 				for(y = 0; y < objArray.length; y++){
-					switch(objArray[y].rotation.y){
-						case 0: objArray[y].position.z += speed; break;
-						case 90: objArray[y].position.x += speed; break;
-						case -90: objArray[y].position.x -= speed; break;
-						case 180: objArray[y].position.z -= speed; break;
-						case -180: objArray[y].position.z -= speed; break;
-						case 270: objArray[y].rotation.y = -90; break;
-						case -270: objArray[y].rotation.y = 90; break;
-						default: objArray[y].rotation.y = 0;
+					if(objMove[y] == "walk"){
+						switch(objArray[y].rotation.y){
+							case 0: objArray[y].position.z += speed; break;
+							case 90: objArray[y].position.x += speed; break;
+							case -90: objArray[y].position.x -= speed; break;
+							case 180: objArray[y].position.z -= speed; break;
+							case -180: objArray[y].position.z -= speed; break;
+							case 270: objArray[y].rotation.y = -90; break;
+							case -270: objArray[y].rotation.y = 90; break;
+							default: objArray[y].rotation.y = 0;
+						}
+					} else if(objMove[y] == "right" || objMove[y] == "left"){
+						if( (objMove[y] == "right" || objMove[y] == "left") && animeClockBuffer[y] == null){
+							animeClockBuffer[y] = parseInt(clock["oldTime"]);
+							console.log("lauch: "+animeClockBuffer[y] );
+							animeChange(y, objMove[y]);
+						} else if(parseInt(clock["oldTime"]) - animeClockBuffer[y] > 1500 && (objMove[y] == "right" || objMove[y] == "left")){
+							objArray[y].rotation.y += (objMove[y] == "right" ? -90 : 90);
+							animeChange(y, "walk");
+							objMove[y] = "walk";
+							animeClockBuffer[y] = null;
+							console.log("ending: "+objMove[y]+" "+ animeClockBuffer[y]);
+						}
 					}
 				}
 			}
@@ -361,7 +377,7 @@
 			function animeChange(objNum, anime){
 				switch(anime){
 					case "walk": anime = 'champiWalk.fbx'; break;
-					case "turnRight": anime = 'champiTurn.fbx'; break;
+					case "right": anime = 'champiTurnRight.fbx'; break;
 				}
 				const loaderFBX = new FBXLoader();
 				loaderFBX.setPath( 'models/' ); // emplacement des fichiers
@@ -373,7 +389,6 @@
 					action.play();
 				});
 			}
-			
 
 			function animate() {
 
@@ -441,6 +456,7 @@
 						objClockBuffer[y] = null;
 					}
 				}
+				// turnPerso();
 				movePerso();
 				renderer.render( scene, camera );
 			}
