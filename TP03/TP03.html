@@ -37,13 +37,15 @@
 			let objClockBuffer = new Array();
 			let animeClockBuffer = new Array(); // stock les temps de début de chaque animation jouer
 			let objMove = new Array();
+			let objSpawnClockBuffer = 0;
 
-			// ============== VARIABLES DEFINITION ==============
-			const nbrPerso = 1;
+			// ============== VARIABLES PARAMETRES ==============
+			const nbrPerso = 10;
 			const areaMax = 270;
 			const areaMin = 100;
 			const speed = .3; // vitesse perso
-			const gravity = 1; // gravité
+			const gravity = 3; // gravité
+			const spawnTime = 400; // temps d'apparition entre chaque perso
 
 
 			// ============== APPEL FONCTIONS ==============
@@ -204,10 +206,9 @@
 				});
 
 				// ===== CHAMPIS =====
-				const angle = [0,90,180,-90];
-				for(y = 0; y < nbrPerso; y++){
-					createPerso();
-				}
+				// for(y = 0; y < nbrPerso; y++){
+				// 	createPerso();
+				// }
 
 				// ============= CAMERA =============
 				camera = new THREE.PerspectiveCamera( 80, window.innerWidth / window.innerHeight, 1, 1500 );
@@ -361,7 +362,6 @@
 				if(obj.position.y > 15){
 					obj.position.y -= gravity;
 					if(objMove[y] == null || objMove[y] != 'fall'){
-						console.log("fall anime");
 						objMove[y] = "fall";
 						animeChange(y, "fall");
 					}
@@ -370,7 +370,6 @@
 					if(objMove[y] == null || objMove[y] != 'fallingImpact'){
 						animeChange(y, "fallingImpact");
 						objMove[y] = "fallingImpact";
-						console.log("fallingImpact anime");
 					}
 				} else {
 					if(objMove[y] != "walk"){
@@ -422,6 +421,12 @@
 				stats.update();
 
 				const delta = clock.getDelta();
+
+				// ===== SPAWN PERSONNAGES =====
+				if(parseInt(clock["oldTime"]) - objSpawnClockBuffer > spawnTime && objArray.length < nbrPerso){
+					createPerso();
+					objSpawnClockBuffer = parseInt(clock["oldTime"]);
+				}
 
 				// ===== ANIMATION COFFRE =====
 				if(animeState == 1){ // 1er étape animation (ouvrir le coffre et sortir le gemme)
