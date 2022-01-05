@@ -40,7 +40,7 @@
 			let objSpawnClockBuffer = 0;
 
 			// ============== VARIABLES PARAMETRES ==============
-			const nbrPerso = 30;
+			const nbrPerso = 1;
 			const areaMax = 270;
 			const areaMin = 100;
 			const speed = .3; // vitesse perso
@@ -204,11 +204,6 @@
 						scene.add(obj); // ajout de l'obj à la scène
 					});
 				});
-
-				// ===== CHAMPIS =====
-				// for(y = 0; y < nbrPerso; y++){
-				// 	createPerso();
-				// }
 
 				// ============= CAMERA =============
 				camera = new THREE.PerspectiveCamera( 80, window.innerWidth / window.innerHeight, 1, 1500 );
@@ -377,7 +372,7 @@
 						objMove[y] = "walk";
 					}
 				}
-				if(obj.position.x > areaMax){
+				if(obj.position.x > areaMax){ // fait demin tour
 					obj.rotation.y = -90;
 				}
 				if(obj.position.x < -areaMax){
@@ -402,6 +397,7 @@
 				switch(anime){
 					case "walk": anime = 'champiWalk.fbx'; break;
 					case "right": anime = 'champiTurnRight.fbx'; break;
+					case "left": anime = 'champiTurnLeft.fbx'; break;
 					case "fall": anime = 'champiFalling.fbx'; break;
 					case "fallingImpact": anime = 'champiFallingImpact.fbx'; break;
 				}
@@ -478,8 +474,9 @@
 						clockBuffer = parseInt(clock["oldTime"]);
 						action = parseInt(Math.floor(Math.random() * 10) + 1);
 						switch(action){
-							case 1: objAction.rotation.y += 90 ; break;
-							case 2: objAction.rotation.y -= 90 ; break;
+							case 1: objMove[y] = "left"; ; break;
+							case 2: objMove[y] = "right"; ; break;
+							case 3:
 						}
 					}
 					// ======= RESET DES CHRONOBUFFER =======
