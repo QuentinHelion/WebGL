@@ -334,14 +334,21 @@
 					} else if(objMove[y] == "right" || objMove[y] == "left"){
 						if( (objMove[y] == "right" || objMove[y] == "left") && animeClockBuffer[y] == null){
 							animeClockBuffer[y] = parseInt(clock["oldTime"]);
-							console.log("lauch: "+animeClockBuffer[y] );
+							// console.log("lauch: "+animeClockBuffer[y] );
 							animeChange(y, objMove[y]);
-						} else if(parseInt(clock["oldTime"]) - animeClockBuffer[y] > 1500 && (objMove[y] == "right" || objMove[y] == "left")){
+						} else if(parseInt(clock["oldTime"]) - animeClockBuffer[y] > 1200 && (objMove[y] == "right" || objMove[y] == "left")){
 							objArray[y].rotation.y += (objMove[y] == "right" ? -90 : 90);
+							switch(objArray[y].rotation.y){
+								case 0: objArray[y].position.z += 7; break;
+								case 90: objArray[y].position.x += 7; break;
+								case -90: objArray[y].position.x -= 7; break;
+								case 180: objArray[y].position.z -= 7; break;
+								case -180: objArray[y].position.z -= 7; break;
+							}
 							animeChange(y, "walk");
 							objMove[y] = "walk";
 							animeClockBuffer[y] = null;
-							console.log("ending: "+objMove[y]+" "+ animeClockBuffer[y]);
+							// console.log("ending: "+objMove[y]+" "+ animeClockBuffer[y]);
 						}
 					}
 				}
@@ -352,6 +359,9 @@
 			function verifPos(obj){
 				if(obj.position.y > 10){
 					obj.position.y -= gravity;
+					// animeChange(y, "fall");
+				} else {
+					// animeChange(y, "walk");
 				}
 				if(obj.position.x > areaMax){
 					obj.rotation.y = -90;
@@ -368,7 +378,7 @@
 				if(obj.position.x < areaMin && obj.position.x > -areaMin && obj.position.z < areaMin && obj.position.z > -areaMin){
 					if(objClockBuffer[y] == null){
 						objClockBuffer[y] = parseInt(clock["oldTime"]);
-						obj.rotation.y += 90;
+						objMove[y] = "right";
 					}
 				}
 			}
@@ -384,7 +394,6 @@
 				loaderFBX.load(anime, function (obj) {
 					mixer = new THREE.AnimationMixer( objArray[objNum] );
 					const action = mixer.clipAction( obj.animations[ 0 ] );
-					// console.log(action);
 					mixerArray[objNum] = mixer;
 					action.play();
 				});
@@ -438,7 +447,7 @@
 						if( (((objAction.position.x - objArray[yB].position.x) < 20) && ((objAction.position.x - objArray[yB].position.x) > -20)) && (((objAction.position.z - objArray[yB].position.z) < 20) && ((objAction.position.z - objArray[yB].position.z) > -20)) ){
 							if(objClockBuffer[y] == null){
 								objClockBuffer[y] = parseInt(clock["oldTime"]);
-								objAction.rotation.y += 90;
+								objMove[y] = "right";
 							}
 						}
 					}
