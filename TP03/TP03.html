@@ -24,8 +24,9 @@
 			let pointLight, spotLightHelper, shadowCameraHelper;
 			let obg,obc;
 			let i,y;
-			let animeState;
-			animeState = i = 0;
+			let animeState, animePerso;
+			let animeGeneClockBuffer;
+			animeState = animePerso = i = 0;
 
 			let mixer;
 			let mixerArray = new Array();
@@ -40,7 +41,7 @@
 			let objSpawnClockBuffer = 0;
 
 			// ============== VARIABLES PARAMETRES ==============
-			const nbrPerso = 1;
+			const nbrPerso = 10;
 			const areaMax = 270;
 			const areaMin = 100;
 			const speed = .3; // vitesse perso
@@ -217,6 +218,7 @@
 				window.addEventListener( 'resize', onWindowResize );
 				window.addEventListener( 'keyup', function(e){ // 'keyup' == touche presser
 					if(e.keyCode == 32){ if(animeState == 0){ animeState = 1; } } // si touche espace presser =>    32 == keycode de la touche espace
+					if(e.keyCode == 71){ animePerso = 1 }
 				});
 			}
 
@@ -226,11 +228,11 @@
 				const angle = [0,90,180,-90];
 				const loaderFBX = new FBXLoader();
 				loaderFBX.setPath( 'models/' ); // emplacement des fichiers
-				loaderFBX.load( 'champiWalk.fbx', function ( obj ) {
-					mixer = new THREE.AnimationMixer( obj );
-					const action = mixer.clipAction( obj.animations[ 0 ] );
-					mixerArray.push(mixer);
-					action.play();
+				loaderFBX.load( 'champi.fbx', function ( obj ) {
+					// mixer = new THREE.AnimationMixer( obj );
+					// const action = mixer.clipAction( obj.animations[ 0 ] );
+					// mixerArray.push(mixer);
+					// action.play();
 					obj.traverse( function ( child ) {
 						if ( child.isMesh ) {
 							child.castShadow = true;
@@ -272,9 +274,7 @@
 					Freecam: false,
 					Intensite: pointLight.intensity,
         	Background: scene.background.getHex(), //getHex() => recup la couleur en hexa
-					"Ajouter personnage": function(){ createPerso(); },
-					"Action change": function(){ objMove[0] = "right" },
-					"Action change 2": function(){ animeChange(0, "walk") }
+					"Ajouter personnage": function(){ createPerso(); }
 				};
 
 				// ========= SETTINGS ACTIONS =========
@@ -304,10 +304,6 @@
         });
 
 				gui.add( params, "Ajouter personnage");
-
-				gui.add( params, "Action change");
-
-				gui.add( params, "Action change 2");
 
 				gui.open(); // Ajout du gui à la scene
 			}
@@ -367,7 +363,7 @@
 						objMove[y] = "fallingImpact";
 					}
 				} else {
-					if(objMove[y] != "walk"){
+					if(objMove[y] != "walk" && animePerso == 0){
 						animeChange(y, "walk");
 						objMove[y] = "walk";
 					}
@@ -400,6 +396,7 @@
 					case "left": anime = 'champiTurnLeft.fbx'; break;
 					case "fall": anime = 'champiFalling.fbx'; break;
 					case "fallingImpact": anime = 'champiFallingImpact.fbx'; break;
+					case 'jump': anime = 'champiJump.fbx'; break;
 				}
 				const loaderFBX = new FBXLoader();
 				loaderFBX.setPath( 'models/' ); // emplacement des fichiers
@@ -411,9 +408,39 @@
 				});
 			}
 
+			// ===== ANIMATION DE TOUT LES PERSOS =====
+			function animationPerso(){
+				// console.log('animationPerso');
+				// console.log(camera.position);
+				if(animePerso == 1){
+					console.log('launch');
+					animeGeneClockBuffer = parseInt(clock["oldTime"]);
+					for(y = 0; y < objArray.length; y++){
+						// console.log(objArray[y]);
+						objArray[y].lookAt(camera.position.x, 20, camera.position.z);
+						objMove[y] = null;
+						animeChange(y, 'jump');
+					}
+					animePerso = 2;
+				} else if(animePerso == 2 && parseInt(clock["oldTime"]) - animeGeneClockBuffer > 3000){
+					animePerso = 0;
+					console.log('fin')
+					for(y = 0; y < objArray.length; y++){
+						// console.log(objArray[y]);
+						// objArray[y].lookAt(camera.position.x, 20, camera.position.z);
+						// console.log('fin');
+						objMove[y] = 'walk';
+						animeChange(y, 'walk');
+						const angle = [0,90,180,-90];
+						objArray[y].rotation.y = angle[parseInt(Math.floor(Math.random() * 4))];
+					}
+				}
+			}
+
+
 			function animate() {
 
-				requestAnimationFrame( animate ); // recup fps
+				window.requestAnimationFrame( animate ); // recup fps
 				stats.update();
 
 				const delta = clock.getDelta();
@@ -476,7 +503,7 @@
 						switch(action){
 							case 1: objMove[y] = "left"; ; break;
 							case 2: objMove[y] = "right"; ; break;
-							case 3:
+							// case 3:
 						}
 					}
 					// ======= RESET DES CHRONOBUFFER =======
@@ -485,6 +512,7 @@
 					}
 				}
 				// turnPerso();
+				animationPerso();
 				movePerso();
 				renderer.render( scene, camera );
 			}
