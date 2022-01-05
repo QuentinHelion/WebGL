@@ -43,7 +43,7 @@
 			const areaMax = 270;
 			const areaMin = 100;
 			const speed = .3; // vitesse perso
-			const gravity = 7; // gravité
+			const gravity = 1; // gravité
 
 
 			// ============== APPEL FONCTIONS ==============
@@ -244,7 +244,7 @@
 					obj.position.set(genPos(areaMax, areaMin), 300, genPos(areaMax, areaMin));
 					obj.rotation.y = angle[parseInt(Math.floor(Math.random() * 4))];
 					objArray.push(obj);
-					objMove.push('walk');
+					// objMove.push('fall');
 					scene.add( obj );
 				});
 			}
@@ -356,12 +356,27 @@
 
 			// ===== VERIF POSITION PERSO =====
 			// Fait tourner le personnage s'il sort de la zone définie
-			function verifPos(obj){
-				if(obj.position.y > 10){
+			function verifPos(objNum){
+				const obj = objArray[objNum];
+				if(obj.position.y > 15){
 					obj.position.y -= gravity;
-					// animeChange(y, "fall");
+					if(objMove[y] == null || objMove[y] != 'fall'){
+						console.log("fall anime");
+						objMove[y] = "fall";
+						animeChange(y, "fall");
+					}
+				} else if(obj.position.y > 10) {
+					obj.position.y -= gravity*0.06;
+					if(objMove[y] == null || objMove[y] != 'fallingImpact'){
+						animeChange(y, "fallingImpact");
+						objMove[y] = "fallingImpact";
+						console.log("fallingImpact anime");
+					}
 				} else {
-					// animeChange(y, "walk");
+					if(objMove[y] != "walk"){
+						animeChange(y, "walk");
+						objMove[y] = "walk";
+					}
 				}
 				if(obj.position.x > areaMax){
 					obj.rotation.y = -90;
@@ -388,6 +403,8 @@
 				switch(anime){
 					case "walk": anime = 'champiWalk.fbx'; break;
 					case "right": anime = 'champiTurnRight.fbx'; break;
+					case "fall": anime = 'champiFalling.fbx'; break;
+					case "fallingImpact": anime = 'champiFallingImpact.fbx'; break;
 				}
 				const loaderFBX = new FBXLoader();
 				loaderFBX.setPath( 'models/' ); // emplacement des fichiers
@@ -441,7 +458,7 @@
 				// ===== DEPLACEMENT DES PERSONNAGES =====
 				for(y = 0; y < objArray.length; y++){
 					objAction = objArray[y];
-					verifPos(objAction);
+					verifPos(y);
 					// ======= COLLISION ======
 					for(let yB = y+1; yB < objArray.length; yB++){
 						if( (((objAction.position.x - objArray[yB].position.x) < 20) && ((objAction.position.x - objArray[yB].position.x) > -20)) && (((objAction.position.z - objArray[yB].position.z) < 20) && ((objAction.position.z - objArray[yB].position.z) > -20)) ){
