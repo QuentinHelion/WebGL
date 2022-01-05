@@ -38,7 +38,7 @@
 			let objClockBuffer = new Array();
 
 			// ============== VARIABLES DEFINITION ==============
-			const nbrPerso = 30;
+			const nbrPerso = 1;
 			const areaMax = 270;
 			const areaMin = 100;
 			const speed = .3; // vitesse perso
@@ -275,7 +275,8 @@
 					Intensite: pointLight.intensity,
         	Background: scene.background.getHex(), //getHex() => recup la couleur en hexa
 					"Ajouter personnage": function(){ createPerso(); },
-					"Action change": function(){ animeChange(0) }
+					"Action change": function(){ animeChange(0, "turnRight") },
+					"Action change 2": function(){ animeChange(0, "walk") }
 				};
 
 				// ========= SETTINGS ACTIONS =========
@@ -307,6 +308,8 @@
 				gui.add( params, "Ajouter personnage");
 
 				gui.add( params, "Action change");
+
+				gui.add( params, "Action change 2");
 
 				gui.open(); // Ajout du gui à la scene
 			}
@@ -355,13 +358,22 @@
 			}
 
 			// ===== CHANGEMENT ANIMATION =====
-			function animeChange(objNum){
-				mixer = new THREE.AnimationMixer( objArray[objNum] );
-				const action = mixer.clipAction('models/champiTurn.fbx');
-				console.log(action);
-				mixerArray[objNum] = mixer;
-				action.play();
+			function animeChange(objNum, anime){
+				switch(anime){
+					case "walk": anime = 'champiWalk.fbx'; break;
+					case "turnRight": anime = 'champiTurn.fbx'; break;
+				}
+				const loaderFBX = new FBXLoader();
+				loaderFBX.setPath( 'models/' ); // emplacement des fichiers
+				loaderFBX.load(anime, function (obj) {
+					mixer = new THREE.AnimationMixer( objArray[objNum] );
+					const action = mixer.clipAction( obj.animations[ 0 ] );
+					// console.log(action);
+					mixerArray[objNum] = mixer;
+					action.play();
+				});
 			}
+			
 
 			function animate() {
 
