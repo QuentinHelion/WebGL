@@ -414,17 +414,19 @@
 					console.log('launch');
 					animeGeneClockBuffer = parseInt(clock["oldTime"]);
 					for(y = 0; y < objArray.length; y++){
-						objArray[y].lookAt(camera.position.x, 20, camera.position.z);
+						objArray[y].lookAt(camera.position);
 						objMove[y] = null;
 						animeChange(y, 'jump');
 					}
 					animePerso = 2;
-				} else if(animePerso == 2 && parseInt(clock["oldTime"]) - animeGeneClockBuffer > 3000){
+				} else if(animePerso == 2 && parseInt(clock["oldTime"]) - animeGeneClockBuffer > 2500){
 					animePerso = 0;
 					for(y = 0; y < objArray.length; y++){
 						objMove[y] = 'walk';
+						animeChange(y, 'walk');
 						const angle = [0,90,180,-90];
 						objArray[y].rotation.y = angle[parseInt(Math.floor(Math.random() * 4))];
+						objArray[y].rotation.x = objArray[y].rotation.z = 0;
 					}
 				}
 			}
